@@ -1,26 +1,222 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
+/* ─────────────────────────────────────────────────────────────────
+   @theme inline — maps Tailwind utility classes to CSS variables.
+   Shadcn semantic tokens point to LifeOS vars so shadcn components
+   inherit the correct dark palette automatically.
+───────────────────────────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* ── Shadcn semantic tokens → LifeOS values ────────────────── */
+  --color-background:          var(--lo-bg);
+  --color-foreground:          var(--lo-text);
+  --color-card:                var(--lo-surface);
+  --color-card-foreground:     var(--lo-text);
+  --color-popover:             var(--lo-surface);
+  --color-popover-foreground:  var(--lo-text);
+  --color-primary:             var(--lo-text);
+  --color-primary-foreground:  var(--lo-bg);
+  --color-secondary:           var(--lo-surface-2);
+  --color-secondary-foreground:var(--lo-text);
+  --color-muted:               var(--lo-surface);
+  --color-muted-foreground:    var(--lo-text-muted);
+  --color-accent:              var(--lo-accent);
+  --color-accent-foreground:   var(--lo-bg);
+  --color-destructive:         var(--lo-danger);
+  --color-border:              var(--lo-border);
+  --color-input:               var(--lo-border);
+  --color-ring:                var(--lo-accent);
+
+  /* ── LifeOS design tokens (source of truth from tokens.css) ── */
+  --color-bg:           var(--lo-bg);
+  --color-bg-2:         var(--lo-bg-2);
+  --color-surface:      var(--lo-surface);
+  --color-surface-2:    var(--lo-surface-2);
+  --color-border-strong:var(--lo-border-strong);
+  --color-text:         var(--lo-text);
+  --color-text-muted:   var(--lo-text-muted);
+  --color-text-faint:   var(--lo-text-faint);
+  --color-text-dim:     var(--lo-text-dim);
+  --color-accent-soft:  var(--lo-accent-soft);
+  --color-accent-line:  var(--lo-accent-line);
+  --color-warn:         var(--lo-warn);
+  --color-danger:       var(--lo-danger);
+  --color-info:         var(--lo-info);
+  --color-success:      var(--lo-success);
+
+  /* ── Typography ────────────────────────────────────────────── */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ── Radii (exact values from prototype tokens.css) ────────── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+
+  /* ── Sidebar (shadcn sidebar component) ────────────────────── */
+  --color-sidebar:                    var(--lo-bg);
+  --color-sidebar-foreground:         var(--lo-text);
+  --color-sidebar-primary:            var(--lo-accent);
+  --color-sidebar-primary-foreground: var(--lo-bg);
+  --color-sidebar-accent:             var(--lo-surface-2);
+  --color-sidebar-accent-foreground:  var(--lo-text);
+  --color-sidebar-border:             var(--lo-border);
+  --color-sidebar-ring:               var(--lo-accent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─────────────────────────────────────────────────────────────────
+   LifeOS CSS custom properties — always dark, single palette.
+   These are referenced by @theme inline above.
+───────────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces — cool-neutral dark */
+  --lo-bg:            oklch(0.16 0.005 240);
+  --lo-bg-2:          oklch(0.185 0.005 240);
+  --lo-surface:       oklch(0.205 0.005 240);
+  --lo-surface-2:     oklch(0.235 0.005 240);
+  --lo-border:        oklch(0.275 0.006 240);
+  --lo-border-strong: oklch(0.34 0.007 240);
+
+  /* Text */
+  --lo-text:          oklch(0.965 0.004 240);
+  --lo-text-muted:    oklch(0.68 0.005 240);
+  --lo-text-faint:    oklch(0.50 0.005 240);
+  --lo-text-dim:      oklch(0.38 0.005 240);
+
+  /* Accent — terminal green, used sparingly */
+  --lo-accent:        oklch(0.78 0.14 145);
+  --lo-accent-soft:   oklch(0.78 0.14 145 / 0.14);
+  --lo-accent-line:   oklch(0.78 0.14 145 / 0.32);
+
+  /* Semantic */
+  --lo-warn:          oklch(0.78 0.13 78);
+  --lo-danger:        oklch(0.68 0.16 25);
+  --lo-info:          oklch(0.74 0.10 235);
+  --lo-success:       oklch(0.78 0.14 145);
+
+  /* Shadcn needs --radius for its own calc-based utilities */
+  --radius: 0.75rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Base layer
+───────────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-bg text-text font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11";
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─────────────────────────────────────────────────────────────────
+   LifeOS utility classes
+───────────────────────────────────────────────────────────────── */
+.tnum { font-variant-numeric: tabular-nums; }
+
+.label-eyebrow {
+  font-family: var(--font-geist-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lo-text-faint);
+}
+
+/* Cursor pointer on all interactive elements */
+button,
+a,
+[role="button"],
+[role="tab"],
+[role="checkbox"],
+label[for],
+select,
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  cursor: pointer;
+}
+
+/* Focus ring — accessible */
+:focus-visible {
+  outline: 2px solid var(--lo-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Scrollbar — discreet
+───────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--lo-border);
+  border-radius: 999px;
+  border: 2px solid var(--lo-bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--lo-border-strong); }
+
+/* ─────────────────────────────────────────────────────────────────
+   Responsive grid helpers
+   Add these classNames to grid containers; inline gridTemplateColumns
+   handles desktop, media query overrides to mobile columns.
+───────────────────────────────────────────────────────────────── */
+
+/* 4-col → 2-col */
+.lo-grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+/* 3-col → 1-col */
+.lo-grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+/* 2-col (equal) → 1-col */
+.lo-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+/* sidebar 320px + content → 1-col */
+.lo-grid-sidebar {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+}
+
+/* Force 1-col on mobile — use alongside inline style for dynamic desktop cols */
+@media (max-width: 767px) {
+  .lo-grid-4col   { grid-template-columns: repeat(2, 1fr) !important; }
+  .lo-grid-3col   { grid-template-columns: 1fr !important; }
+  .lo-grid-2col   { grid-template-columns: 1fr !important; }
+  .lo-grid-sidebar{ grid-template-columns: 1fr !important; }
+
+  /* Any grid that should collapse fully to 1-col on mobile */
+  .lo-mobile-1col { grid-template-columns: 1fr !important; }
+
+  /* Extra bottom padding so content isn't hidden by tab bar */
+  .lo-screen      { padding-bottom: 90px !important; }
+
+  /* Hide search button on mobile TopBar */
+  .lo-topbar-search { display: none !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Reduced motion
+───────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
