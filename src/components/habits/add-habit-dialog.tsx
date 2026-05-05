@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { createHabit } from '@/app/(shell)/habits/actions';
 import type { HabitFull } from '@/types/lifeos';
 
+const QUICK_EMOJIS = [
+  '💪','🏃','📚','🧘','💧','🛌','🎯','✍️','🏋️','🚴',
+  '🍎','💊','🪥','📝','🎨','🎵','🧠','💰','🌞','🧘',
+  '🚶','🏊','☕','🥗','🫀','🦷','📵','🛁','🌿','🔥',
+];
+
 const DAYS = [
   { key: 0, short: 'Pn' },
   { key: 1, short: 'Wt' },
@@ -42,6 +48,7 @@ export function AddHabitDialog({ open, onOpenChange, onAdded }: {
   onAdded?: (habit: HabitFull) => void;
 }) {
   const [name, setName] = useState('');
+  const [emoji, setEmoji] = useState('');
   const [mode, setMode] = useState<FreqMode>('count');
   const [count, setCount] = useState(7);
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -57,9 +64,9 @@ export function AddHabitDialog({ open, onOpenChange, onAdded }: {
   const save = () => {
     if (!name.trim() || target === 0) return;
     start(async () => {
-      const habit = await createHabit({ name: name.trim(), freq, type, target });
+      const habit = await createHabit({ name: name.trim(), emoji: emoji.trim(), freq, type, target });
       onAdded?.(habit);
-      setName(''); setMode('count'); setCount(7); setDays([0, 1, 2, 3, 4]);
+      setName(''); setEmoji(''); setMode('count'); setCount(7); setDays([0, 1, 2, 3, 4]);
       onOpenChange(false);
     });
   };
@@ -86,6 +93,33 @@ export function AddHabitDialog({ open, onOpenChange, onAdded }: {
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && save()}
               style={{ background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)', color: 'var(--lo-text)' }}
+            />
+          </div>
+
+          {/* Emoji */}
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--lo-text-muted)', marginBottom: 8 }}>Emoji (opcjonalne)</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {QUICK_EMOJIS.map(e => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => setEmoji(emoji === e ? '' : e)}
+                  style={{
+                    width: 36, height: 36, borderRadius: 8, fontSize: 18,
+                    background: emoji === e ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+                    border: '1px solid ' + (emoji === e ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
+                    cursor: 'pointer', display: 'grid', placeItems: 'center',
+                  }}
+                >{e}</button>
+              ))}
+            </div>
+            <Input
+              placeholder="lub wpisz własne…"
+              value={emoji}
+              onChange={e => setEmoji(e.target.value)}
+              maxLength={2}
+              style={{ background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)', color: 'var(--lo-text)', width: 120, fontSize: 20, textAlign: 'center' }}
             />
           </div>
 

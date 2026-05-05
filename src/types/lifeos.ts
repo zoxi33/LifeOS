@@ -2,6 +2,7 @@
 export interface TodayHabit {
   id: string;
   name: string;
+  emoji: string;
   freq: string;
   done: boolean;
   streak: number;
@@ -11,6 +12,7 @@ export interface TodayHabit {
 export interface HabitFull {
   id: string;
   name: string;
+  emoji: string;
   freq: string;
   type: 'daily' | 'weekly' | 'custom';
   streak: number;

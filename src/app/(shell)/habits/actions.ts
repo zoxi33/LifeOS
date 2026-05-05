@@ -39,6 +39,7 @@ export async function getHabitsForToday(): Promise<TodayHabit[]> {
     return {
       id: h.id,
       name: h.name,
+      emoji: h.emoji ?? '',
       freq: h.freq,
       done: todayLog?.done ?? false,
       streak: computeStreak(hLogs, h.type, h.target),
@@ -87,6 +88,7 @@ export async function getHabitsList(): Promise<HabitFull[]> {
     return {
       id: h.id,
       name: h.name,
+      emoji: h.emoji ?? '',
       freq: h.freq,
       type: h.type as HabitFull['type'],
       streak,
@@ -108,7 +110,7 @@ export async function toggleHabitLog(habitId: string, date: string, done: boolea
 }
 
 export async function createHabit(data: {
-  name: string; freq: string; type: string; target: number;
+  name: string; emoji?: string; freq: string; type: string; target: number;
 }): Promise<HabitFull> {
   const sb = await createClient();
   const { data: row, error } = await sb.from('habits').insert(data).select().single();
@@ -119,6 +121,7 @@ export async function createHabit(data: {
   return {
     id: row.id,
     name: row.name,
+    emoji: row.emoji ?? '',
     freq: row.freq,
     type: row.type as HabitFull['type'],
     streak: 0,

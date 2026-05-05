@@ -53,6 +53,7 @@ export type Database = {
         Row: {
           id: string;
           name: string;
+          emoji: string;
           freq: string;
           type: string;
           target: number;
@@ -62,6 +63,7 @@ export type Database = {
         Insert: {
           id?: string;
           name: string;
+          emoji?: string;
           freq: string;
           type: string;
           target?: number;
@@ -71,6 +73,7 @@ export type Database = {
         Update: {
           id?: string;
           name?: string;
+          emoji?: string;
           freq?: string;
           type?: string;
           target?: number;

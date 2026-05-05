@@ -204,11 +204,34 @@ input[type="range"] {
   /* Any grid that should collapse fully to 1-col on mobile */
   .lo-mobile-1col { grid-template-columns: 1fr !important; }
 
-  /* Extra bottom padding so content isn't hidden by tab bar */
-  .lo-screen      { padding-bottom: 90px !important; }
+  /* Bottom padding = tab bar height + safe area */
+  .lo-screen {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Reduce side padding on small screens */
+  .lo-screen {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Hide elements only on mobile */
+  .lo-hide-mobile { display: none !important; }
 
   /* Hide search button on mobile TopBar */
   .lo-topbar-search { display: none !important; }
+
+  /* Habits table: collapse to name-only on mobile */
+  .lo-habits-row {
+    grid-template-columns: 1fr 24px !important;
+  }
+  .lo-habits-col-week,
+  .lo-habits-col-pct,
+  .lo-habits-col-streak { display: none !important; }
+
+  /* Habits header: wrap on mobile */
+  .lo-habits-header { flex-wrap: wrap !important; gap: 10px !important; align-items: flex-start !important; }
+  .lo-habits-filters { flex-wrap: wrap !important; gap: 4px !important; }
 }
 
 /* ─────────────────────────────────────────────────────────────────

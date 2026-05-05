@@ -131,26 +131,30 @@ function HabitListRow({ h, isOpen, onToggle, onDelete }: {
           color: 'var(--lo-text)', fontFamily: 'inherit',
           cursor: 'pointer', transition: 'background .12s ease',
         }}
+        className="lo-habits-row"
       >
-        <div>
-          <div style={{ fontSize: 13.5 }}>{h.name}</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)', marginTop: 2 }}>
-            {h.freq}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {h.emoji && <span style={{ fontSize: 18, flexShrink: 0 }}>{h.emoji}</span>}
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <div style={{ fontSize: 13.5 }}>{h.name}</div>
+            <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)', marginTop: 2 }}>
+              {h.freq}
+            </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="lo-habits-col-week" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1 }}><Bar value={h.week} max={h.target} h={4} /></div>
           <span style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: 'var(--lo-text-muted)', minWidth: 30 }}>
             {h.week}/{h.target}
           </span>
         </div>
-        <div style={{
+        <div className="lo-habits-col-pct" style={{
           textAlign: 'right', fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
           fontSize: 12, color: h.completionRate > 0.85 ? 'var(--lo-accent)' : 'var(--lo-text-muted)',
         }}>
           {Math.round(h.completionRate * 100)}%
         </div>
-        <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+        <div className="lo-habits-col-streak" style={{ textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
           <Icon name="flame" size={11} style={{ color: 'var(--lo-accent)' }} />
           <span style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>{h.streak}</span>
         </div>
@@ -184,14 +188,14 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
       />
       <div className="lo-screen" style={{ padding: '20px 24px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div className="lo-habits-header" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 4 }}>
           <div>
             <div className="label-eyebrow">Nawyki</div>
             <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em', marginTop: 4 }}>
               {habits.length} aktywnych
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="lo-habits-filters" style={{ display: 'flex', gap: 6 }}>
             {([['all','Wszystkie'],['daily','Codzienne'],['weekly','Tygodniowe'],['custom','Niestandardowe']] as [FilterType, string][]).map(([k, l]) => (
               <button key={k} onClick={() => setFilter(k)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -220,11 +224,11 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
             display: 'grid', gridTemplateColumns: '1fr 220px 80px 100px 24px',
             padding: '12px 18px', borderBottom: '1px solid var(--lo-border)',
             background: 'var(--lo-bg-2)',
-          }} className="label-eyebrow">
+          }} className="label-eyebrow lo-habits-row">
             <div>Nawyk</div>
-            <div>Tydzień</div>
-            <div style={{ textAlign: 'right' }}>%</div>
-            <div style={{ textAlign: 'right' }}>Streak</div>
+            <div className="lo-habits-col-week">Tydzień</div>
+            <div className="lo-habits-col-pct" style={{ textAlign: 'right' }}>%</div>
+            <div className="lo-habits-col-streak" style={{ textAlign: 'right' }}>Streak</div>
             <div />
           </div>
           {filtered.length === 0 ? (
