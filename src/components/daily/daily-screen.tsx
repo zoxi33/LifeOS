@@ -6,6 +6,7 @@ import {
   upsertFocus, upsertWork, toggleHabitForDate, toggleChecklistItem,
   addChecklistItem, deleteChecklistItem, toggleStreakFlag, getWeekData,
 } from '@/app/(shell)/daily/actions';
+import { streakBreakPenalty, nextStreakMilestone } from '@/app/(shell)/today/actions';
 import type { DayData, ChecklistItemDef } from '@/app/(shell)/daily/actions';
 
 // ─── constants & helpers ─────────────────────────────────────────────────────
@@ -69,19 +70,25 @@ function StreakCard({ itemId, date, name, done: init, streakCount, onUnmark }: {
   const [, start] = useTransition();
   const toggle = () => start(async () => { setDone(!done); await toggleChecklistItem(date, itemId, !done); });
 
-  // optimistic display: if done today, streak is at least streakCount; else show as-is
   const displayStreak = done ? Math.max(streakCount, 1) : streakCount;
+  const penalty       = streakBreakPenalty(displayStreak);
+  const milestone     = nextStreakMilestone(displayStreak);
+  const daysToMilestone = milestone ? milestone.days - displayStreak : null;
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 12,
-      padding: '16px 18px', minWidth: 160, maxWidth: 200,
+      display: 'flex', flexDirection: 'column', gap: 10,
+      padding: '16px 18px', minWidth: 175, maxWidth: 215,
       background: done
         ? 'color-mix(in oklch, var(--lo-warn) 12%, transparent)'
-        : streakCount > 0
+        : displayStreak > 0
           ? 'color-mix(in oklch, var(--lo-warn) 6%, transparent)'
           : 'var(--lo-surface-2)',
-      border: '1px solid ' + (done ? 'var(--lo-warn)' : streakCount > 0 ? 'color-mix(in oklch, var(--lo-warn) 40%, transparent)' : 'var(--lo-border-strong)'),
+      border: '1px solid ' + (done
+        ? 'var(--lo-warn)'
+        : displayStreak > 0
+          ? 'color-mix(in oklch, var(--lo-warn) 40%, transparent)'
+          : 'var(--lo-border-strong)'),
       borderRadius: 12,
     }}>
       {/* Header row */}
@@ -89,28 +96,20 @@ function StreakCard({ itemId, date, name, done: init, streakCount, onUnmark }: {
         <span style={{ fontSize: 12, fontWeight: 600, color: done ? 'var(--lo-warn)' : 'var(--lo-text-muted)', lineHeight: 1.2 }}>
           {name}
         </span>
-        <button
-          onClick={onUnmark}
-          title="Usuń z sekcji streakow"
-          style={{
-            width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-            background: 'transparent', border: '1px solid transparent',
-            color: 'var(--lo-text-dim)', display: 'grid', placeItems: 'center',
-            cursor: 'pointer', fontSize: 11,
-          }}
+        <button onClick={onUnmark} title="Usuń z sekcji streakow" style={{
+          width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+          background: 'transparent', border: '1px solid transparent',
+          color: 'var(--lo-text-dim)', display: 'grid', placeItems: 'center', cursor: 'pointer',
+        }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--lo-border)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--lo-surface)'; }}
           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-        >
-          <Icon name="x" size={10} />
-        </button>
+        ><Icon name="x" size={10} /></button>
       </div>
 
       {/* Streak counter */}
-      <div style={{ textAlign: 'center', padding: '4px 0' }}>
+      <div style={{ textAlign: 'center', padding: '2px 0' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-          {displayStreak > 0 && (
-            <span style={{ fontSize: 16 }}>🔥</span>
-          )}
+          {displayStreak > 0 && <span style={{ fontSize: 16 }}>🔥</span>}
           <span style={{
             fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
             fontSize: 52, fontWeight: 700, lineHeight: 1,
@@ -126,25 +125,50 @@ function StreakCard({ itemId, date, name, done: init, streakCount, onUnmark }: {
         </div>
       </div>
 
+      {/* Penalty + milestone row */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 4,
+        padding: '8px 10px',
+        background: 'color-mix(in oklch, var(--lo-bg) 60%, transparent)',
+        borderRadius: 8, border: '1px solid color-mix(in oklch, var(--lo-border) 60%, transparent)',
+      }}>
+        {displayStreak > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>Kara za reset</span>
+            <span style={{
+              fontSize: 12, fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+              fontWeight: 600, color: 'var(--lo-danger)',
+            }}>−{penalty} XP</span>
+          </div>
+        )}
+        {milestone && daysToMilestone !== null && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>
+              Za {daysToMilestone}d milestone
+            </span>
+            <span style={{
+              fontSize: 12, fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+              fontWeight: 600, color: 'var(--lo-accent)',
+            }}>+{milestone.bonus} XP</span>
+          </div>
+        )}
+        {!milestone && (
+          <div style={{ fontSize: 11, color: 'var(--lo-warn)', fontFamily: 'var(--font-geist-mono)', textAlign: 'center' }}>
+            🏆 Legendarny streak!
+          </div>
+        )}
+      </div>
+
       {/* Toggle today */}
-      <button
-        onClick={toggle}
-        style={{
-          height: 34,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          background: done
-            ? 'color-mix(in oklch, var(--lo-warn) 18%, transparent)'
-            : 'var(--lo-bg-2)',
-          color: done ? 'var(--lo-warn)' : 'var(--lo-text-muted)',
-          border: '1px solid ' + (done ? 'var(--lo-warn)' : 'var(--lo-border)'),
-          borderRadius: 8, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer',
-          fontWeight: done ? 500 : 400,
-        }}
-      >
-        {done
-          ? <><Icon name="check" size={12} /> Dziś ✓</>
-          : 'Oznacz dziś'
-        }
+      <button onClick={toggle} style={{
+        height: 34,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        background: done ? 'color-mix(in oklch, var(--lo-warn) 18%, transparent)' : 'var(--lo-bg-2)',
+        color: done ? 'var(--lo-warn)' : 'var(--lo-text-muted)',
+        border: '1px solid ' + (done ? 'var(--lo-warn)' : 'var(--lo-border)'),
+        borderRadius: 8, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', fontWeight: done ? 500 : 400,
+      }}>
+        {done ? <><Icon name="check" size={12} /> Dziś ✓</> : 'Oznacz dziś'}
       </button>
     </div>
   );

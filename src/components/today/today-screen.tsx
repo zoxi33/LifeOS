@@ -9,11 +9,12 @@ import { QuickLog } from './quick-log';
 import { GoalsStrip } from './goals-strip';
 import { StatTile } from './stat-tile';
 import { FinanceMini } from './finance-mini';
+import { XPCard } from './xp-card';
 import { AddHabitDialog } from '@/components/habits/add-habit-dialog';
 import { useTweaks } from '@/hooks/use-tweaks';
 import { toggleHabitLog } from '@/app/(shell)/habits/actions';
 import type { TodayHabit, Goal } from '@/types/lifeos';
-import type { TodayStats, TodayFinance } from '@/app/(shell)/today/actions';
+import type { TodayStats, TodayFinance, XPData } from '@/app/(shell)/today/actions';
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
@@ -30,9 +31,10 @@ interface TodayScreenProps {
   stats?: TodayStats;
   finance?: TodayFinance;
   goals?: Goal[];
+  xp?: XPData;
 }
 
-export function TodayScreen({ initialHabits = [], stats, finance, goals = [] }: TodayScreenProps) {
+export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp }: TodayScreenProps) {
   const [habits, setHabits] = useState<TodayHabit[]>(initialHabits);
   const [addHabit, setAddHabit] = useState(false);
   const [tweaks] = useTweaks();
@@ -135,16 +137,8 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [] }: 
                 </div>
               )}
 
-              {tweaks.showXP ? (
-                <div style={{
-                  background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
-                  borderRadius: 12, padding: '18px 20px',
-                  display: 'flex', flexDirection: 'column', gap: 8,
-                }}>
-                  <div className="label-eyebrow">XP</div>
-                  <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 28, fontWeight: 500 }}>0</div>
-                  <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>Level 1</div>
-                </div>
+              {xp ? (
+                <XPCard xp={xp} />
               ) : (
                 <div style={{
                   background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
