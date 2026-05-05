@@ -6,7 +6,7 @@ import {
   upsertFocus, upsertWork, toggleHabitForDate, toggleChecklistItem,
   addChecklistItem, deleteChecklistItem, toggleStreakFlag, getWeekData,
 } from '@/app/(shell)/daily/actions';
-import { streakBreakPenalty, nextStreakMilestone } from '@/app/(shell)/today/actions';
+import { streakBreakPenalty, nextStreakMilestone } from '@/lib/streak-utils';
 import type { DayData, ChecklistItemDef } from '@/app/(shell)/daily/actions';
 
 // ─── constants & helpers ─────────────────────────────────────────────────────
