@@ -13,12 +13,19 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      checklist_items: {
+        Row: { id: string; name: string; active: boolean; sort_order: number; created_at: string; };
+        Insert: { id?: string; name: string; active?: boolean; sort_order?: number; created_at?: string; };
+        Update: { id?: string; name?: string; active?: boolean; sort_order?: number; created_at?: string; };
+        Relationships: [];
+      };
       daily_logs: {
         Row: {
           id: string;
           date: string;
           focus_minutes: number;
           notes: string | null;
+          checklist: Record<string, boolean> | null;
           created_at: string;
         };
         Insert: {
@@ -26,6 +33,7 @@ export type Database = {
           date: string;
           focus_minutes?: number;
           notes?: string | null;
+          checklist?: Record<string, boolean> | null;
           created_at?: string;
         };
         Update: {
@@ -33,6 +41,7 @@ export type Database = {
           date?: string;
           focus_minutes?: number;
           notes?: string | null;
+          checklist?: Record<string, boolean> | null;
           created_at?: string;
         };
         Relationships: [];
