@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { daysAgo, weekStart, today as todayStr } from '@/lib/supabase/queries';
-export { streakBreakPenalty, nextStreakMilestone, STREAK_MILESTONES } from '@/lib/streak-utils';
 
 // ─── XP helpers ───────────────────────────────────────────────────────────────
 // Level n requires xpForLevel(n) total XP.
