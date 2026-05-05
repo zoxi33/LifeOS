@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { createHabit } from '@/app/(shell)/habits/actions';
+import type { HabitFull } from '@/types/lifeos';
 
 const DAYS = [
   { key: 0, short: 'Pn' },
@@ -35,9 +36,10 @@ function buildFreqString(mode: FreqMode, count: number, days: number[]): string 
   return sorted.map(d => DAY_LABELS[d]).join(' · ');
 }
 
-export function AddHabitDialog({ open, onOpenChange }: {
+export function AddHabitDialog({ open, onOpenChange, onAdded }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onAdded?: (habit: HabitFull) => void;
 }) {
   const [name, setName] = useState('');
   const [mode, setMode] = useState<FreqMode>('count');
@@ -55,7 +57,8 @@ export function AddHabitDialog({ open, onOpenChange }: {
   const save = () => {
     if (!name.trim() || target === 0) return;
     start(async () => {
-      await createHabit({ name: name.trim(), freq, type, target });
+      const habit = await createHabit({ name: name.trim(), freq, type, target });
+      onAdded?.(habit);
       setName(''); setMode('count'); setCount(7); setDays([0, 1, 2, 3, 4]);
       onOpenChange(false);
     });

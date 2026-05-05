@@ -109,12 +109,24 @@ export async function toggleHabitLog(habitId: string, date: string, done: boolea
 
 export async function createHabit(data: {
   name: string; freq: string; type: string; target: number;
-}) {
+}): Promise<HabitFull> {
   const sb = await createClient();
-  const { error } = await sb.from('habits').insert(data);
-  if (error) throw new Error(error.message);
+  const { data: row, error } = await sb.from('habits').insert(data).select().single();
+  if (error || !row) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/today');
   revalidatePath('/habits');
+  revalidatePath('/daily');
+  return {
+    id: row.id,
+    name: row.name,
+    freq: row.freq,
+    type: row.type as HabitFull['type'],
+    streak: 0,
+    best: 0,
+    completionRate: 0,
+    target: row.target,
+    week: 0,
+  };
 }
 
 export async function deleteHabit(id: string) {

@@ -14,9 +14,9 @@ export type Database = {
   public: {
     Tables: {
       checklist_items: {
-        Row: { id: string; name: string; active: boolean; sort_order: number; created_at: string; };
-        Insert: { id?: string; name: string; active?: boolean; sort_order?: number; created_at?: string; };
-        Update: { id?: string; name?: string; active?: boolean; sort_order?: number; created_at?: string; };
+        Row: { id: string; name: string; active: boolean; is_streak: boolean; sort_order: number; created_at: string; };
+        Insert: { id?: string; name: string; active?: boolean; is_streak?: boolean; sort_order?: number; created_at?: string; };
+        Update: { id?: string; name?: string; active?: boolean; is_streak?: boolean; sort_order?: number; created_at?: string; };
         Relationships: [];
       };
       daily_logs: {
@@ -24,6 +24,7 @@ export type Database = {
           id: string;
           date: string;
           focus_minutes: number;
+          work_minutes: number;
           notes: string | null;
           checklist: Record<string, boolean> | null;
           created_at: string;
@@ -32,6 +33,7 @@ export type Database = {
           id?: string;
           date: string;
           focus_minutes?: number;
+          work_minutes?: number;
           notes?: string | null;
           checklist?: Record<string, boolean> | null;
           created_at?: string;
@@ -40,6 +42,7 @@ export type Database = {
           id?: string;
           date?: string;
           focus_minutes?: number;
+          work_minutes?: number;
           notes?: string | null;
           checklist?: Record<string, boolean> | null;
           created_at?: string;

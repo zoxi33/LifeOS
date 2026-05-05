@@ -177,7 +177,11 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
 
   return (
     <>
-      <AddHabitDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddHabitDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdded={habit => setHabits(prev => [...prev, habit])}
+      />
       <div className="lo-screen" style={{ padding: '20px 24px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 4 }}>
