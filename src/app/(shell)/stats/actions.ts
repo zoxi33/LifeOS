@@ -17,6 +17,7 @@ export interface StatsData {
   habitLogs: HabitLogData[];
   scatterPoints: { date: string; sleep: number; mood: number }[];
   weightPoints: { date: string; weight: number }[];
+  focusPoints: { date: string; minutes: number }[];
 }
 
 export async function getStatsData(): Promise<StatsData> {
@@ -29,6 +30,7 @@ export async function getStatsData(): Promise<StatsData> {
     { data: journal },
     { data: weights },
     { count: journalCount },
+    { data: focusRaw },
   ] = await Promise.all([
     sb.from('habits').select('id, name').eq('active', true),
     sb.from('habit_logs').select('habit_id, date, done').gte('date', since),
@@ -43,6 +45,7 @@ export async function getStatsData(): Promise<StatsData> {
       .gte('measured_at', since)
       .order('measured_at'),
     sb.from('journal_entries').select('*', { count: 'exact', head: true }),
+    sb.from('daily_logs').select('date, focus_minutes').gte('date', since).order('date'),
   ]);
 
   const habitLogs: HabitLogData[] = (habits ?? []).map(h => {
@@ -66,11 +69,16 @@ export async function getStatsData(): Promise<StatsData> {
       weight: w.weight_kg!,
     }));
 
+  const focusPoints = (focusRaw ?? [])
+    .filter(r => r.focus_minutes > 0)
+    .map(r => ({ date: String(r.date), minutes: r.focus_minutes }));
+
   return {
     activeHabits: habits?.length ?? 0,
     journalCount: journalCount ?? 0,
     habitLogs,
     scatterPoints,
     weightPoints,
+    focusPoints,
   };
 }

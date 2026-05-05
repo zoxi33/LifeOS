@@ -42,7 +42,7 @@ export function ShellClient({ children }: { children: React.ReactNode }) {
 
       if (!meta && !e.shiftKey && !typing) {
         const map: Record<string, string> = {
-          '1': '/today', '2': '/habits', '3': '/journal', '4': '/stats',
+          '1': '/today', '2': '/daily', '3': '/habits', '4': '/journal', '5': '/stats',
         };
         if (map[e.key]) router.push(map[e.key]);
       }

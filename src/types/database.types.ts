@@ -13,6 +13,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      daily_logs: {
+        Row: {
+          id: string;
+          date: string;
+          focus_minutes: number;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          date: string;
+          focus_minutes?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          date?: string;
+          focus_minutes?: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       habits: {
         Row: {
           id: string;

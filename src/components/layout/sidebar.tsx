@@ -15,9 +15,10 @@ interface NavItem {
 
 const primaryItems: NavItem[] = [
   { href: '/today',   icon: 'home',   label: 'Dziś',       kbd: '1' },
-  { href: '/habits',  icon: 'list',   label: 'Nawyki',     kbd: '2' },
-  { href: '/journal', icon: 'book',   label: 'Dziennik',   kbd: '3' },
-  { href: '/stats',   icon: 'chart',  label: 'Statystyki', kbd: '4' },
+  { href: '/daily',   icon: 'grid',   label: 'Przegląd',   kbd: '2' },
+  { href: '/habits',  icon: 'list',   label: 'Nawyki',     kbd: '3' },
+  { href: '/journal', icon: 'book',   label: 'Dziennik',   kbd: '4' },
+  { href: '/stats',   icon: 'chart',  label: 'Statystyki', kbd: '5' },
 ];
 
 const subItems: NavItem[] = [

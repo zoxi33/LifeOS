@@ -50,6 +50,7 @@ export function Icon({ name, size = 16, className = '', style }: IconProps) {
     case 'reset':       return <svg {...common}><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>;
     case 'settings':    return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.5-2.4.9a7 7 0 00-2-1.1L14 3h-4l-.5 2.6a7 7 0 00-2 1.1l-2.4-.9-2 3.5 2 1.5A7 7 0 005 12a7 7 0 00.1 1.2l-2 1.5 2 3.5 2.4-.9a7 7 0 002 1.1L10 21h4l.5-2.6a7 7 0 002-1.1l2.4.9 2-3.5-2-1.5c.06-.4.1-.8.1-1.2z"/></svg>;
     case 'logout':      return <svg {...common}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>;
+    case 'grid':        return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
     case 'trash':       return <svg {...common}><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>;
     default:            return null;
   }

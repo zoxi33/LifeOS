@@ -6,6 +6,7 @@ import { Icon } from '@/components/primitives/icon';
 
 const TABS = [
   { href: '/today',   icon: 'home',  label: 'Dziś'     },
+  { href: '/daily',   icon: 'grid',  label: 'Przegląd' },
   { href: '/habits',  icon: 'list',  label: 'Nawyki'   },
   { href: '/journal', icon: 'book',  label: 'Dziennik' },
   { href: '/stats',   icon: 'chart', label: 'Stat'     },

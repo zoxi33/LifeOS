@@ -359,6 +359,46 @@ export function StatsScreen({ data }: { data: StatsData }) {
           </div>
         </div>
       )}
+
+      {/* ── Focus time ── */}
+      {(() => {
+        const filteredFocus = data.focusPoints.filter(p => p.date >= since);
+        if (filteredFocus.length === 0) return null;
+        const totalMin = filteredFocus.reduce((s, p) => s + p.minutes, 0);
+        const avgMin = Math.round(totalMin / filteredFocus.length);
+        const maxMin = Math.max(...filteredFocus.map(p => p.minutes));
+        const fmtMin = (m: number) => m >= 60 ? `${Math.floor(m/60)}h ${m%60 ? (m%60)+'min' : ''}`.trim() : `${m}min`;
+        return (
+          <div style={{
+            background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
+            borderRadius: 12, padding: '18px 20px',
+          }}>
+            <SectionHeader eyebrow={`Focus · ${days}d`} title="Czas skupienia" />
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 100, padding: '8px 0 0', marginBottom: 8 }}>
+              {filteredFocus.map((p, i) => (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div
+                    title={`${p.date}: ${fmtMin(p.minutes)}`}
+                    style={{
+                      width: '100%', maxWidth: 20,
+                      height: Math.max(2, (p.minutes / maxMin) * 90),
+                      background: 'var(--lo-accent-soft)',
+                      border: '1px solid var(--lo-accent-line)',
+                      borderRadius: '3px 3px 0 0',
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>
+              <span style={{ color: 'var(--lo-text-faint)' }}>łącznie <span style={{ color: 'var(--lo-accent)' }}>{fmtMin(totalMin)}</span></span>
+              <span style={{ color: 'var(--lo-text-faint)' }}>śr. {fmtMin(avgMin)} / sesję</span>
+              <span style={{ color: 'var(--lo-text-faint)' }}>max {fmtMin(maxMin)}</span>
+              <span style={{ color: 'var(--lo-text-faint)' }}>{filteredFocus.length} dni</span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
