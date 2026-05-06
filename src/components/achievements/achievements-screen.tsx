@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { HabitRing } from '@/components/primitives/habit-ring';
-import type { Achievement, AchievementCategory, AchievementsData } from '@/app/(shell)/achievements/actions';
-import { ACHIEVEMENT_CATEGORIES } from '@/app/(shell)/achievements/actions';
+import type { Achievement, AchievementCategory, AchievementsData } from '@/app/(shell)/achievements/config';
+import { ACHIEVEMENT_CATEGORIES } from '@/app/(shell)/achievements/config';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
