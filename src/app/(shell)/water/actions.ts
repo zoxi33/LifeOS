@@ -2,17 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { litresToGlasses } from '@/lib/water-utils';
 
 export interface WaterLog {
   glasses: number;
   target: number;
   date: string;
 }
-
-const GLASSES_PER_LITRE = 4; // 250 ml per glass
-
-export function litresToGlasses(l: number) { return Math.round(l * GLASSES_PER_LITRE); }
-export function glassesToLitres(g: number) { return +(g / GLASSES_PER_LITRE).toFixed(2); }
 
 async function getDefaultTarget(sb: Awaited<ReturnType<typeof createClient>>): Promise<number> {
   const { data } = await sb

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
-import { setWaterGlasses, setWaterTarget, litresToGlasses, glassesToLitres } from '@/app/(shell)/water/actions';
+import { setWaterGlasses, setWaterTarget } from '@/app/(shell)/water/actions';
+import { litresToGlasses, glassesToLitres } from '@/lib/water-utils';
 import type { WaterLog } from '@/app/(shell)/water/actions';
 
 function DropIcon({ filled, size = 28 }: { filled: boolean; size?: number }) {
