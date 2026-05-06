@@ -11,10 +11,14 @@ import { StatTile } from './stat-tile';
 import { FinanceMini } from './finance-mini';
 import { XPCard } from './xp-card';
 import { AddHabitDialog } from '@/components/habits/add-habit-dialog';
+import { StreaksSection } from '@/components/streaks/streaks-section';
+import { WaterWidget } from '@/components/water/water-widget';
 import { useTweaks } from '@/hooks/use-tweaks';
 import { toggleHabitLog } from '@/app/(shell)/habits/actions';
 import type { TodayHabit, Goal } from '@/types/lifeos';
 import type { TodayStats, TodayFinance, XPData } from '@/app/(shell)/today/actions';
+import type { StreakTracker } from '@/app/(shell)/streaks/actions';
+import type { WaterLog } from '@/app/(shell)/water/actions';
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
@@ -32,9 +36,11 @@ interface TodayScreenProps {
   finance?: TodayFinance;
   goals?: Goal[];
   xp?: XPData;
+  initialTrackers?: StreakTracker[];
+  water?: WaterLog;
 }
 
-export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp }: TodayScreenProps) {
+export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp, initialTrackers = [], water }: TodayScreenProps) {
   const [habits, setHabits] = useState<TodayHabit[]>(initialHabits);
   const [addHabit, setAddHabit] = useState(false);
   const [tweaks] = useTweaks();
@@ -191,8 +197,16 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
             )}
           </div>
 
-          <QuickLog />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <QuickLog />
+            {water && <WaterWidget initial={water} />}
+          </div>
         </div>
+
+        {/* ── Streaki ─────────────────────────────────────────────── */}
+        {initialTrackers.length > 0 && (
+          <StreaksSection initialTrackers={initialTrackers} />
+        )}
 
         {/* ── Goals ───────────────────────────────────────────────── */}
         <GoalsStrip goals={goals} />

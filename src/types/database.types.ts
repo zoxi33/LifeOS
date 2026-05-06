@@ -320,6 +320,18 @@ export type Database = {
         Update: { key?: string; value?: Json };
         Relationships: [];
       };
+      water_logs: {
+        Row: { id: string; date: string; glasses: number; target: number; };
+        Insert: { id?: string; date: string; glasses?: number; target?: number; };
+        Update: { id?: string; date?: string; glasses?: number; target?: number; };
+        Relationships: [];
+      };
+      streak_trackers: {
+        Row: { id: string; name: string; started_at: string; active: boolean; created_at: string; };
+        Insert: { id?: string; name: string; started_at?: string; active?: boolean; created_at?: string; };
+        Update: { id?: string; name?: string; started_at?: string; active?: boolean; created_at?: string; };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

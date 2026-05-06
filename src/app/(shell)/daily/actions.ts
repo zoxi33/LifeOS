@@ -13,6 +13,8 @@ export interface DayData {
   date: string;
   focusMinutes: number;
   workMinutes: number;
+  waterGlasses: number;
+  waterTarget: number;
   habits: { id: string; name: string; done: boolean }[];
   sleepHours: number | null;
   weightKg: number | null;
@@ -68,7 +70,7 @@ export async function getWeekData(weekOffset: number): Promise<{
   since365.setDate(since365.getDate() - 365);
   const since365Str = since365.toISOString().slice(0, 10);
 
-  const [habitsRes, logsRes, focusRes, sleepRes, weightRes, journalRes, checklistDefsRes, historyRes] = await Promise.all([
+  const [habitsRes, logsRes, focusRes, sleepRes, weightRes, journalRes, checklistDefsRes, historyRes, waterRes] = await Promise.all([
     sb.from('habits').select('id, name').eq('active', true).order('created_at'),
     sb.from('habit_logs').select('habit_id, date, done').gte('date', start).lte('date', end),
     sb.from('daily_logs').select('date, focus_minutes, work_minutes, checklist').gte('date', start).lte('date', end),
@@ -77,6 +79,7 @@ export async function getWeekData(weekOffset: number): Promise<{
     sb.from('journal_entries').select('date, mood').gte('date', start).lte('date', end),
     sb.from('checklist_items').select('id, name, is_streak').eq('active', true).order('sort_order').order('created_at'),
     sb.from('daily_logs').select('date, checklist').gte('date', since365Str).order('date', { ascending: false }),
+    sb.from('water_logs').select('date, glasses, target').gte('date', start).lte('date', end),
   ]);
 
   const habits = habitsRes.data ?? [];
@@ -93,6 +96,7 @@ export async function getWeekData(weekOffset: number): Promise<{
     if (!weightMap[d]) weightMap[d] = r.weight_kg ?? 0;
   }
   const moodMap = Object.fromEntries((journalRes.data ?? []).map(r => [String(r.date), r.mood]));
+  const waterMap = Object.fromEntries((waterRes.data ?? []).map(r => [String(r.date), { glasses: r.glasses, target: r.target }]));
   const checklistDefs: ChecklistItemDef[] = (checklistDefsRes.data ?? []).map(r => ({
     id: r.id,
     name: r.name,
@@ -120,6 +124,8 @@ export async function getWeekData(weekOffset: number): Promise<{
       date,
       focusMinutes: focusEntry?.minutes ?? 0,
       workMinutes: focusEntry?.workMinutes ?? 0,
+      waterGlasses: waterMap[date]?.glasses ?? 0,
+      waterTarget: waterMap[date]?.target ?? 8,
       habits: habits.map(h => ({ id: h.id, name: h.name, done: doneSet.has(h.id) })),
       sleepHours: sleepMap[date] ?? null,
       weightKg: weightMap[date] ?? null,
