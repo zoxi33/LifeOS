@@ -1,13 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-
-// ─── Level formula: L1=0, L2=100, L3=300, L4=600, L5=1000 … ─────────────────
-// Cost to reach next level = 100 * currentLevel (exponential growth)
-export function xpForLevel(n: number): number { return 50 * n * (n - 1); }
-export function levelFromXP(xp: number): number {
-  return Math.max(1, Math.floor((1 + Math.sqrt(1 + 8 * xp / 100)) / 2));
-}
+import { xpForLevel, levelFromXP } from '@/lib/xp';
 
 // ─── Achievement definitions ──────────────────────────────────────────────────
 
