@@ -53,6 +53,7 @@ export function Icon({ name, size = 16, className = '', style }: IconProps) {
     case 'grid':        return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
     case 'trash':       return <svg {...common}><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>;
     case 'droplet':     return <svg {...common}><path d="M12 2C6 9 4 13 4 16a8 8 0 0016 0c0-3-2-7-8-14z"/></svg>;
+    case 'trophy':      return <svg {...common}><path d="M6 2h12v10a6 6 0 01-12 0z"/><path d="M6 7H3a2 2 0 000 4h3M18 7h3a2 2 0 010 4h-3M9 22h6M12 18v4"/></svg>;
     default:            return null;
   }
 }

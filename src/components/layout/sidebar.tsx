@@ -22,12 +22,13 @@ const primaryItems: NavItem[] = [
 ];
 
 const subItems: NavItem[] = [
-  { href: '/streaks', icon: 'flame',   label: 'Streaki' },
-  { href: '/water',   icon: 'droplet', label: 'Woda' },
-  { href: '/goals',   icon: 'goal',    label: 'Cele' },
-  { href: '/finance', icon: 'wallet', label: 'Finanse' },
-  { href: '/sleep',   icon: 'moon',   label: 'Sen' },
-  { href: '/weight',  icon: 'weight', label: 'Waga' },
+  { href: '/streaks',      icon: 'flame',   label: 'Streaki' },
+  { href: '/water',        icon: 'droplet', label: 'Woda' },
+  { href: '/goals',        icon: 'goal',    label: 'Cele' },
+  { href: '/finance',      icon: 'wallet',  label: 'Finanse' },
+  { href: '/sleep',        icon: 'moon',    label: 'Sen' },
+  { href: '/weight',       icon: 'weight',  label: 'Waga' },
+  { href: '/achievements', icon: 'trophy',  label: 'Osiągnięcia' },
 ];
 
 function SidebarItem({ item, primary = false }: { item: NavItem; primary?: boolean }) {
