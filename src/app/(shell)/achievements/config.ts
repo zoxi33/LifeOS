@@ -28,6 +28,12 @@ export interface LevelData {
   weekXP: number;
 }
 
+export interface FreedomTracker {
+  id: string;
+  name: string;
+  days: number;
+}
+
 export interface AchievementsData {
   achievements: Achievement[];
   earnedXP: number;
@@ -35,6 +41,7 @@ export interface AchievementsData {
   totalCount: number;
   level: LevelData;
   totalXPSystem: number;
+  freedomTrackers: FreedomTracker[];
 }
 
 export const ACHIEVEMENT_CATEGORIES: AchievementCategory[] = [

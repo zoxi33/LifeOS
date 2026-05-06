@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { HabitRing } from '@/components/primitives/habit-ring';
-import type { Achievement, AchievementCategory, AchievementsData } from '@/app/(shell)/achievements/config';
+import type { Achievement, AchievementCategory, AchievementsData, FreedomTracker } from '@/app/(shell)/achievements/config';
 import { ACHIEVEMENT_CATEGORIES } from '@/app/(shell)/achievements/config';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -131,6 +131,73 @@ function AchievementCard({ a }: { a: Achievement }) {
   );
 }
 
+// ─── FreedomCard ─────────────────────────────────────────────────────────────
+
+const FREEDOM_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
+const FREEDOM_COLOR = 'oklch(0.78 0.10 200)';
+
+function nextMilestone(days: number): number {
+  return FREEDOM_MILESTONES.find(m => m > days) ?? FREEDOM_MILESTONES[FREEDOM_MILESTONES.length - 1];
+}
+
+function FreedomCard({ t }: { t: FreedomTracker }) {
+  const next = nextMilestone(t.days);
+  const prev = FREEDOM_MILESTONES.filter(m => m <= t.days).at(-1) ?? 0;
+  const segLen = next - prev;
+  const segDone = t.days - prev;
+  const pct = Math.round((segDone / segLen) * 100);
+
+  return (
+    <div style={{
+      background: `color-mix(in oklch, ${FREEDOM_COLOR} 6%, var(--lo-surface))`,
+      border: `1px solid color-mix(in oklch, ${FREEDOM_COLOR} 28%, transparent)`,
+      borderRadius: 12, padding: '20px 16px 16px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+    }}>
+      <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+        <HabitRing value={segDone} total={segLen} size={80} stroke={6} color={FREEDOM_COLOR} />
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+            fontSize: t.days >= 100 ? 17 : 21, fontWeight: 600, lineHeight: 1,
+            color: 'var(--lo-text)',
+          }}>
+            {t.days}
+          </span>
+          <span style={{
+            fontFamily: 'var(--font-geist-mono)', fontSize: 10,
+            color: 'var(--lo-text-faint)', lineHeight: 1, marginTop: 2,
+          }}>dni</span>
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'center', width: '100%' }}>
+        <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, marginBottom: 4 }}>
+          {t.name}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', lineHeight: 1.4 }}>
+          następny cel: {next} dni
+        </div>
+      </div>
+
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        height: 22, padding: '0 8px',
+        background: `color-mix(in oklch, ${FREEDOM_COLOR} 14%, transparent)`,
+        border: `1px solid color-mix(in oklch, ${FREEDOM_COLOR} 32%, transparent)`,
+        borderRadius: 999,
+        fontFamily: 'var(--font-geist-mono)', fontSize: 11,
+        color: FREEDOM_COLOR, fontVariantNumeric: 'tabular-nums',
+      }}>
+        {pct}% do {next}d
+      </div>
+    </div>
+  );
+}
+
 // ─── LevelBar ─────────────────────────────────────────────────────────────────
 
 function LevelBar({ level, xpInLevel, xpForNextLevel, totalXP }: {
@@ -224,6 +291,20 @@ export function AchievementsScreen({ data }: { data: AchievementsData }) {
         xpForNextLevel={data.level.xpForNextLevel}
         totalXP={data.level.totalXP}
       />
+
+      {/* Freedom trackers */}
+      {data.freedomTrackers.length > 0 && (
+        <div>
+          <div className="label-eyebrow" style={{ marginBottom: 10 }}>Aktywne streaki wolności</div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${Math.min(data.freedomTrackers.length, 4)}, minmax(160px, 200px))`,
+            gap: 12,
+          }}>
+            {data.freedomTrackers.map(t => <FreedomCard key={t.id} t={t} />)}
+          </div>
+        </div>
+      )}
 
       {/* Category filter */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

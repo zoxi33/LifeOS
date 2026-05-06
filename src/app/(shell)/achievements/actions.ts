@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { xpForLevel, levelFromXP } from '@/lib/xp';
-import type { Achievement, AchievementDef, AchievementsData } from './config';
+import type { Achievement, AchievementDef, AchievementsData, FreedomTracker } from './config';
 import { ACHIEVEMENT_DEFS } from './config';
 
 export async function getAchievementsData(): Promise<AchievementsData> {
@@ -29,7 +29,7 @@ export async function getAchievementsData(): Promise<AchievementsData> {
     sb.from('journal_entries').select('id', { count: 'exact', head: true }),
     sb.from('transactions').select('id', { count: 'exact', head: true }),
     sb.from('transactions').select('id', { count: 'exact', head: true }).eq('type', 'invest'),
-    sb.from('streak_trackers').select('started_at').eq('active', true),
+    sb.from('streak_trackers').select('id, name, started_at').eq('active', true).order('created_at'),
     sb.from('habit_logs').select('id', { count: 'exact', head: true }).eq('done', true),
     sb.from('habit_logs').select('id', { count: 'exact', head: true }).eq('done', true)
       .gte('date', new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)),
@@ -94,10 +94,12 @@ export async function getAchievementsData(): Promise<AchievementsData> {
   const streakTrackers = streakTrackersRes.data ?? [];
   let maxFreedomDays = 0;
   const nowMs = Date.now();
+  const freedomTrackers: FreedomTracker[] = [];
   for (const t of streakTrackers) {
     if (!t.started_at) continue;
     const days = Math.floor((nowMs - new Date(t.started_at as string).getTime()) / 86400000);
     if (days > maxFreedomDays) maxFreedomDays = days;
+    freedomTrackers.push({ id: t.id as string, name: t.name as string, days });
   }
 
   // ── XP computation ────────────────────────────────────────────────────────
@@ -209,6 +211,7 @@ export async function getAchievementsData(): Promise<AchievementsData> {
     unlockedCount,
     totalCount: achievements.length,
     totalXPSystem,
+    freedomTrackers,
     level: { totalXP: totalXPSystem, level, xpInLevel, xpForNextLevel, todayXP, weekXP },
   };
 }
