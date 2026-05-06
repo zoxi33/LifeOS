@@ -54,15 +54,15 @@ export function ShellClient({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`density-${tweaks.density}`}
-      style={{ display: 'flex', minHeight: '100vh', background: 'var(--lo-bg)' }}
+      style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--lo-bg)' }}
     >
-      <div className="hidden md:flex">
+      <div className="hidden md:flex" style={{ flexShrink: 0 }}>
         <Sidebar />
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         <TopBar onCmd={() => setCmd(true)} onTweaks={() => setTweaksOpen(v => !v)} />
-        <main style={{ flex: 1, overflow: 'auto' }}>
+        <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
       </div>
