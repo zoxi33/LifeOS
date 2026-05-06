@@ -64,3 +64,21 @@ export async function deactivateGoal(id: string) {
   await sb.from('goals').update({ active: false }).eq('id', id);
   revalidatePath('/goals');
 }
+
+export async function addMilestone(goalId: string, name: string, dueLabel?: string): Promise<{ id: string; name: string; done: boolean; date: string }> {
+  const sb = await createClient();
+  const { data, error } = await sb
+    .from('goal_milestones')
+    .insert({ goal_id: goalId, name, due_label: dueLabel ?? null })
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message ?? 'insert failed');
+  revalidatePath('/goals');
+  return { id: data.id, name: data.name, done: data.done ?? false, date: data.due_label ?? '' };
+}
+
+export async function deleteMilestone(id: string) {
+  const sb = await createClient();
+  await sb.from('goal_milestones').delete().eq('id', id);
+  revalidatePath('/goals');
+}

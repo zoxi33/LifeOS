@@ -1,32 +1,54 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { addTransaction } from '@/app/(shell)/finance/actions';
+import { addTransaction, updateTransaction } from '@/app/(shell)/finance/actions';
+import type { Transaction } from '@/types/lifeos';
 
 const CATEGORIES = ['Jedzenie', 'Transport', 'Rozrywka', 'Zdrowie', 'Ubrania', 'Subskrypcje', 'Dom', 'Inwestycje', 'Inne'];
 type TxType = 'expense' | 'income' | 'invest';
 
-export function AddTransactionDialog({ open, onOpenChange }: {
+interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-}) {
-  const today = new Date().toISOString().slice(0, 10);
+  editTx?: Transaction | null;
+  onUpdated?: (tx: Transaction) => void;
+}
+
+export function AddTransactionDialog({ open, onOpenChange, editTx, onUpdated }: Props) {
+  const todayStr = new Date().toISOString().slice(0, 10);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(todayStr);
   const [category, setCategory] = useState('Inne');
   const [type, setType] = useState<TxType>('expense');
   const [pending, start] = useTransition();
 
+  useEffect(() => {
+    if (editTx) {
+      setName(editTx.name);
+      setAmount(String(editTx.amount));
+      setDate(editTx.date);
+      setCategory(editTx.cat || 'Inne');
+      setType(editTx.type);
+    } else {
+      setName(''); setAmount(''); setDate(todayStr); setCategory('Inne'); setType('expense');
+    }
+  }, [editTx, open]);
+
   const save = () => {
     const amt = parseFloat(amount.replace(',', '.'));
     if (!name.trim() || isNaN(amt)) return;
+    const payload = { name: name.trim(), amount: amt, date, category, type };
     start(async () => {
-      await addTransaction({ name: name.trim(), amount: amt, date, category, type });
-      setName(''); setAmount(''); setDate(today); setCategory('Inne'); setType('expense');
+      if (editTx) {
+        await updateTransaction(editTx.id, payload);
+        onUpdated?.({ ...editTx, ...payload, amount: amt });
+      } else {
+        await addTransaction(payload);
+      }
       onOpenChange(false);
     });
   };
@@ -41,7 +63,9 @@ export function AddTransactionDialog({ open, onOpenChange }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent style={{ background: 'var(--lo-surface)', border: '1px solid var(--lo-border)', borderRadius: 14, maxWidth: 440 }}>
         <DialogHeader>
-          <DialogTitle style={{ fontSize: 18, fontWeight: 500 }}>Nowa transakcja</DialogTitle>
+          <DialogTitle style={{ fontSize: 18, fontWeight: 500 }}>
+            {editTx ? 'Edytuj transakcję' : 'Nowa transakcja'}
+          </DialogTitle>
         </DialogHeader>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
 

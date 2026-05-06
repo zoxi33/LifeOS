@@ -179,6 +179,16 @@ export async function addChecklistItem(name: string) {
   revalidatePath('/daily');
 }
 
+export async function reorderChecklistItems(orderedIds: string[]) {
+  const sb = await createClient();
+  await Promise.all(
+    orderedIds.map((id, idx) =>
+      sb.from('checklist_items').update({ sort_order: idx }).eq('id', id)
+    )
+  );
+  revalidatePath('/daily');
+}
+
 export async function deleteChecklistItem(id: string) {
   const sb = await createClient();
   await sb.from('checklist_items').update({ active: false }).eq('id', id);

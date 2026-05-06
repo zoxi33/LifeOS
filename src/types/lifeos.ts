@@ -20,6 +20,7 @@ export interface HabitFull {
   completionRate: number;
   target: number;
   week: number;
+  todayDone: boolean;
 }
 
 // ── Dziennik ─────────────────────────────────────────────────────────────────
@@ -99,7 +100,9 @@ export interface FinanceCategory {
 
 // ── Sen ───────────────────────────────────────────────────────────────────────
 export interface SleepDay {
+  id: string;
   date: number;
+  dateStr: string;
   hours: number;
   bed: number;
   wake: number;
@@ -108,6 +111,7 @@ export interface SleepDay {
 
 // ── Waga ─────────────────────────────────────────────────────────────────────
 export interface WeightEntry {
+  id: string;
   d: string;
   w: number;
   delta: number;

@@ -102,6 +102,16 @@ export async function addTransaction(data: {
   revalidatePath('/today');
 }
 
+export async function updateTransaction(id: string, data: {
+  date: string; name: string; category: string;
+  amount: number; type: 'expense' | 'income' | 'invest';
+}) {
+  const sb = await createClient();
+  await sb.from('transactions').update(data).eq('id', id);
+  revalidatePath('/finance');
+  revalidatePath('/today');
+}
+
 export async function deleteTransaction(id: string) {
   const sb = await createClient();
   await sb.from('transactions').delete().eq('id', id);

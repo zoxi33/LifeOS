@@ -5,7 +5,7 @@ import { Icon } from '@/components/primitives/icon';
 import { Bar } from '@/components/primitives/bar';
 import { Heatmap } from '@/components/primitives/heatmap';
 import { AddHabitDialog } from './add-habit-dialog';
-import { deleteHabit } from '@/app/(shell)/habits/actions';
+import { deleteHabit, toggleHabitLog } from '@/app/(shell)/habits/actions';
 import type { HabitFull } from '@/types/lifeos';
 
 type FilterType = 'all' | 'daily' | 'weekly' | 'custom';
@@ -111,13 +111,15 @@ function HabitDetail({ h, onDelete }: { h: HabitFull; onDelete: (id: string) => 
 }
 
 /* ─── HabitListRow ─────────────────────────────────────────────────────────── */
-function HabitListRow({ h, isOpen, onToggle, onDelete }: {
+function HabitListRow({ h, isOpen, onToggle, onDelete, onTodayToggle }: {
   h: HabitFull; isOpen: boolean; onToggle: () => void; onDelete: (id: string) => void;
+  onTodayToggle: (id: string, done: boolean) => void;
 }) {
   const [hover, setHover] = useState(false);
+  const [toggling, startToggle] = useTransition();
   const bg = isOpen ? 'var(--lo-surface-2)' : hover ? 'var(--lo-bg-2)' : 'transparent';
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
       <button
         onClick={onToggle}
         onMouseEnter={() => setHover(true)}
@@ -160,6 +162,30 @@ function HabitListRow({ h, isOpen, onToggle, onDelete }: {
         </div>
         <Icon name={isOpen ? 'chevron-down' : 'chevron-right'} size={14} style={{ color: 'var(--lo-text-faint)' }} />
       </button>
+      {/* Today toggle — sits outside the expand button to prevent toggling expand */}
+      <button
+        onClick={e => {
+          e.stopPropagation();
+          const today = new Date().toISOString().slice(0, 10);
+          const newDone = !h.todayDone;
+          onTodayToggle(h.id, newDone);
+          startToggle(async () => { await toggleHabitLog(h.id, today, newDone); });
+        }}
+        disabled={toggling}
+        title={h.todayDone ? 'Oznacz jako niewykonany dziś' : 'Oznacz jako wykonany dziś'}
+        style={{
+          position: 'absolute', right: 46,
+          width: 28, height: 28, borderRadius: 6,
+          border: '1px solid ' + (h.todayDone ? 'var(--lo-accent-line)' : 'var(--lo-border-strong)'),
+          background: h.todayDone ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+          color: h.todayDone ? 'var(--lo-accent)' : 'var(--lo-text-dim)',
+          display: hover || h.todayDone ? 'grid' : 'none',
+          placeItems: 'center', cursor: 'pointer',
+          transition: 'all 0.1s',
+        }}
+      >
+        <Icon name="check" size={13} />
+      </button>
       {isOpen && <HabitDetail h={h} onDelete={onDelete} />}
     </div>
   );
@@ -177,6 +203,10 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
   const handleDelete = (id: string) => {
     setHabits(prev => prev.filter(h => h.id !== id));
     setOpen(null);
+  };
+
+  const handleTodayToggle = (id: string, done: boolean) => {
+    setHabits(prev => prev.map(h => h.id === id ? { ...h, todayDone: done } : h));
   };
 
   return (
@@ -243,6 +273,7 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
               isOpen={open === h.id}
               onToggle={() => setOpen(open === h.id ? null : h.id)}
               onDelete={handleDelete}
+              onTodayToggle={handleTodayToggle}
             />
           ))}
         </div>

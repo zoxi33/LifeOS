@@ -45,7 +45,7 @@ function StatCard({ label, value, unit, sub, accent = false, warn = false }: {
   );
 }
 
-function TxRow({ t, onDelete }: { t: Transaction; onDelete: (id: string) => void }) {
+function TxRow({ t, onDelete, onEdit }: { t: Transaction; onDelete: (id: string) => void; onEdit: (tx: Transaction) => void }) {
   const [hovered, setHovered] = useState(false);
   const [deleting, startDelete] = useTransition();
 
@@ -57,7 +57,7 @@ function TxRow({ t, onDelete }: { t: Transaction; onDelete: (id: string) => void
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        display: 'grid', gridTemplateColumns: '76px 1fr 130px 110px 32px',
+        display: 'grid', gridTemplateColumns: '76px 1fr 130px 110px 60px',
         alignItems: 'center', gap: 12,
         padding: '11px 18px',
         background: hovered ? 'var(--lo-bg-2)' : 'transparent',
@@ -86,21 +86,35 @@ function TxRow({ t, onDelete }: { t: Transaction; onDelete: (id: string) => void
       }}>
         {isIncome ? '+' : isInvest ? '→' : '−'}{fmt(t.amount)} zł
       </div>
-      <button
-        onClick={() => startDelete(() => onDelete(t.id))}
-        disabled={deleting}
-        style={{
-          display: 'grid', placeItems: 'center',
-          width: 28, height: 28, borderRadius: 6,
-          background: 'transparent', border: 'none',
-          color: 'var(--lo-text-dim)', opacity: hovered ? 1 : 0,
-          transition: 'opacity 0.1s, background 0.1s',
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--lo-surface-2)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-danger)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-text-dim)'; }}
-      >
-        <Icon name="trash" size={13} />
-      </button>
+      <div style={{ display: 'flex', gap: 2, opacity: hovered ? 1 : 0, transition: 'opacity 0.1s' }}>
+        <button
+          onClick={() => onEdit(t)}
+          style={{
+            display: 'grid', placeItems: 'center',
+            width: 28, height: 28, borderRadius: 6,
+            background: 'transparent', border: 'none',
+            color: 'var(--lo-text-dim)',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--lo-surface-2)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-text)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-text-dim)'; }}
+        >
+          <Icon name="edit" size={13} />
+        </button>
+        <button
+          onClick={() => startDelete(() => onDelete(t.id))}
+          disabled={deleting}
+          style={{
+            display: 'grid', placeItems: 'center',
+            width: 28, height: 28, borderRadius: 6,
+            background: 'transparent', border: 'none',
+            color: 'var(--lo-text-dim)',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--lo-surface-2)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-danger)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-text-dim)'; }}
+        >
+          <Icon name="trash" size={13} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -110,12 +124,21 @@ function TxRow({ t, onDelete }: { t: Transaction; onDelete: (id: string) => void
 export function FinanceScreen({ data }: { data: FinanceData }) {
   const { currentMonth: cm, monthlySummaries, transactions } = data;
   const [addOpen, setAddOpen] = useState(false);
+  const [editTx, setEditTx] = useState<Transaction | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [txs, setTxs] = useState<Transaction[]>(transactions);
 
   const handleDelete = async (id: string) => {
     setTxs(prev => prev.filter(t => t.id !== id));
     await deleteTransaction(id);
+  };
+
+  const handleUpdated = (updated: Transaction) => {
+    setTxs(prev => prev.map(t => t.id === updated.id ? {
+      ...updated,
+      d: new Date(updated.date).toLocaleDateString('pl', { day: '2-digit', month: 'short' }),
+    } : t));
+    setEditTx(null);
   };
 
   // Categories from this month's expenses
@@ -151,6 +174,12 @@ export function FinanceScreen({ data }: { data: FinanceData }) {
   return (
     <>
       <AddTransactionDialog open={addOpen} onOpenChange={v => { setAddOpen(v); }} />
+      <AddTransactionDialog
+        open={!!editTx}
+        onOpenChange={v => { if (!v) setEditTx(null); }}
+        editTx={editTx}
+        onUpdated={handleUpdated}
+      />
       <div className="lo-screen" style={{
         padding: '20px 24px 40px',
         display: 'flex', flexDirection: 'column', gap: 16,
@@ -329,7 +358,7 @@ export function FinanceScreen({ data }: { data: FinanceData }) {
 
           {/* Table header */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '76px 1fr 130px 110px 32px',
+            display: 'grid', gridTemplateColumns: '76px 1fr 130px 110px 60px',
             gap: 12, padding: '8px 18px',
             background: 'var(--lo-bg-2)', borderBottom: '1px solid var(--lo-border)',
           }} className="label-eyebrow">
@@ -350,7 +379,7 @@ export function FinanceScreen({ data }: { data: FinanceData }) {
             <div style={{ borderBottom: '1px solid var(--lo-border)' }}>
               {filtered.map((t, i) => (
                 <div key={t.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--lo-border)' : 'none' }}>
-                  <TxRow t={t} onDelete={handleDelete} />
+                  <TxRow t={t} onDelete={handleDelete} onEdit={setEditTx} />
                 </div>
               ))}
             </div>

@@ -210,8 +210,20 @@ export function JournalScreen({ initialEntries = [] }: { initialEntries?: Journa
   const [selected, setSelected] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
-  const e = entries[selected];
+  const filteredEntries = search.trim()
+    ? entries.filter(e => {
+        const q = search.toLowerCase();
+        return (
+          e.title.toLowerCase().includes(q) ||
+          e.body.toLowerCase().includes(q) ||
+          e.tags.some(t => t.toLowerCase().includes(q))
+        );
+      })
+    : entries;
+
+  const e = filteredEntries[selected] ?? filteredEntries[0];
 
   const handleEditSaved = (updated: JournalEntry) => {
     setEntries(prev => prev.map((x, i) => i === selected ? updated : x));
@@ -274,7 +286,44 @@ export function JournalScreen({ initialEntries = [] }: { initialEntries?: Journa
             </button>
           </div>
 
-          <EntryList entries={entries} selected={selected} onSelect={setSelected} />
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Icon name="search" size={13} style={{
+              position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+              color: 'var(--lo-text-faint)', pointerEvents: 'none',
+            }} />
+            <input
+              placeholder="Szukaj…"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setSelected(0); }}
+              style={{
+                width: '100%', height: 32, paddingLeft: 30, paddingRight: 10,
+                background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)',
+                borderRadius: 8, color: 'var(--lo-text)', fontFamily: 'inherit', fontSize: 13,
+                boxSizing: 'border-box',
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => { setSearch(''); setSelected(0); }}
+                style={{
+                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                  background: 'transparent', border: 'none', color: 'var(--lo-text-dim)', cursor: 'pointer',
+                  display: 'grid', placeItems: 'center',
+                }}
+              >
+                <Icon name="x" size={12} />
+              </button>
+            )}
+          </div>
+
+          {filteredEntries.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--lo-text-muted)', padding: '8px 0' }}>
+              Brak wyników dla „{search}".
+            </div>
+          ) : (
+            <EntryList entries={filteredEntries} selected={filteredEntries.indexOf(e ?? filteredEntries[0])} onSelect={i => setSelected(i)} />
+          )}
         </div>
 
         {/* Detail */}

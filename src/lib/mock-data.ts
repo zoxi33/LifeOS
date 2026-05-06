@@ -21,14 +21,14 @@ export const todayHabits: TodayHabit[] = [
 
 // ── Nawyki — lista pełna ──────────────────────────────────────────────────────
 export const habitsList: HabitFull[] = [
-  { id: 'workout',  name: 'Trening siłowy',     freq: 'Pn · Śr · Pt · Sb', type: 'custom',  streak: 14,  best: 28,  completionRate: 0.86, target: 4, week: 3, emoji: '🏋️' },
-  { id: 'read',     name: 'Czytanie 30 min',    freq: 'codziennie',         type: 'daily',   streak: 47,  best: 89,  completionRate: 0.94, target: 7, week: 6, emoji: '📚' },
-  { id: 'meditate', name: 'Medytacja 10 min',   freq: 'codziennie',         type: 'daily',   streak: 12,  best: 34,  completionRate: 0.71, target: 7, week: 5, emoji: '🧘' },
-  { id: 'cold',     name: 'Zimny prysznic',     freq: 'codziennie',         type: 'daily',   streak: 6,   best: 21,  completionRate: 0.62, target: 7, week: 6, emoji: '🚿' },
-  { id: 'lang',     name: 'Hiszpański (Anki)',  freq: 'codziennie',         type: 'daily',   streak: 89,  best: 89,  completionRate: 0.98, target: 7, week: 7, emoji: '🌐' },
-  { id: 'walk',     name: 'Spacer 8000 kroków', freq: '5×/tydzień',         type: 'weekly',  streak: 3,   best: 12,  completionRate: 0.75, target: 5, week: 4, emoji: '🚶' },
-  { id: 'creatine', name: 'Kreatyna',           freq: 'codziennie',         type: 'daily',   streak: 132, best: 132, completionRate: 0.99, target: 7, week: 7, emoji: '💊' },
-  { id: 'noscroll', name: 'Bez social mediów',  freq: 'Pn—Pt',              type: 'custom',  streak: 9,   best: 21,  completionRate: 0.81, target: 5, week: 4, emoji: '📵' },
+  { id: 'workout',  name: 'Trening siłowy',     freq: 'Pn · Śr · Pt · Sb', type: 'custom',  streak: 14,  best: 28,  completionRate: 0.86, target: 4, week: 3, emoji: '🏋️', todayDone: false },
+  { id: 'read',     name: 'Czytanie 30 min',    freq: 'codziennie',         type: 'daily',   streak: 47,  best: 89,  completionRate: 0.94, target: 7, week: 6, emoji: '📚', todayDone: true },
+  { id: 'meditate', name: 'Medytacja 10 min',   freq: 'codziennie',         type: 'daily',   streak: 12,  best: 34,  completionRate: 0.71, target: 7, week: 5, emoji: '🧘', todayDone: false },
+  { id: 'cold',     name: 'Zimny prysznic',     freq: 'codziennie',         type: 'daily',   streak: 6,   best: 21,  completionRate: 0.62, target: 7, week: 6, emoji: '🚿', todayDone: true },
+  { id: 'lang',     name: 'Hiszpański (Anki)',  freq: 'codziennie',         type: 'daily',   streak: 89,  best: 89,  completionRate: 0.98, target: 7, week: 7, emoji: '🌐', todayDone: true },
+  { id: 'walk',     name: 'Spacer 8000 kroków', freq: '5×/tydzień',         type: 'weekly',  streak: 3,   best: 12,  completionRate: 0.75, target: 5, week: 4, emoji: '🚶', todayDone: false },
+  { id: 'creatine', name: 'Kreatyna',           freq: 'codziennie',         type: 'daily',   streak: 132, best: 132, completionRate: 0.99, target: 7, week: 7, emoji: '💊', todayDone: true },
+  { id: 'noscroll', name: 'Bez social mediów',  freq: 'Pn—Pt',              type: 'custom',  streak: 9,   best: 21,  completionRate: 0.81, target: 5, week: 4, emoji: '📵', todayDone: false },
 ];
 
 // ── Sparkline series ──────────────────────────────────────────────────────────
@@ -125,7 +125,9 @@ export const financeCategories: FinanceCategory[] = [
 
 // ── Sen ───────────────────────────────────────────────────────────────────────
 export const sleepDays: SleepDay[] = Array.from({ length: 30 }, (_, i) => ({
+  id:      `mock-sleep-${i}`,
   date:    i,
+  dateStr: new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(0, 10),
   hours:   5.5 + Math.sin(i * 0.5) * 1.2 + (((i * 7 + 3) % 11) / 11) * 1.4,
   bed:     22.5 + (((i * 13 + 5) % 9) / 9) * 1.5,
   wake:    6.0  + (((i * 11 + 7) % 9) / 9) * 1.5,
@@ -138,9 +140,9 @@ export const weightLog: number[] = Array.from({ length: 90 }, (_, i) =>
 );
 
 export const weightEntries: WeightEntry[] = [
-  { d: '02 maja, 07:12', w: 80.1, delta: -0.2 },
-  { d: '01 maja, 07:05', w: 80.3, delta: -0.1 },
-  { d: '30 kwi, 07:30',  w: 80.4, delta: +0.1 },
-  { d: '29 kwi, 06:58',  w: 80.3, delta: -0.4 },
-  { d: '28 kwi, 07:22',  w: 80.7, delta:  0.0 },
+  { id: 'mock-w1', d: '02 maja, 07:12', w: 80.1, delta: -0.2 },
+  { id: 'mock-w2', d: '01 maja, 07:05', w: 80.3, delta: -0.1 },
+  { id: 'mock-w3', d: '30 kwi, 07:30',  w: 80.4, delta: +0.1 },
+  { id: 'mock-w4', d: '29 kwi, 06:58',  w: 80.3, delta: -0.4 },
+  { id: 'mock-w5', d: '28 kwi, 07:22',  w: 80.7, delta:  0.0 },
 ];

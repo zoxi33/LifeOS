@@ -5,6 +5,7 @@ import { Icon } from '@/components/primitives/icon';
 import {
   upsertFocus, upsertWork, toggleHabitForDate, toggleChecklistItem,
   addChecklistItem, deleteChecklistItem, toggleStreakFlag, getWeekData,
+  reorderChecklistItems,
 } from '@/app/(shell)/daily/actions';
 import { streakBreakPenalty, nextStreakMilestone } from '@/lib/streak-utils';
 import { StreaksSection } from '@/components/streaks/streaks-section';
@@ -373,15 +374,17 @@ function AddChecklistForm({ onAdded }: { onAdded: (name: string) => void }) {
 // ─── TodaySection ─────────────────────────────────────────────────────────────
 
 function TodaySection({
-  day, streakCounts, onChecklistDelete, onStreakToggle,
+  day, streakCounts, onChecklistDelete, onStreakToggle, onChecklistReorder,
 }: {
   day: DayData;
   streakCounts: Record<string, number>;
   onChecklistDelete: (id: string) => void;
   onStreakToggle: (id: string, isStreak: boolean) => void;
+  onChecklistReorder: (newOrder: { id: string; name: string; done: boolean; isStreak: boolean }[]) => void;
 }) {
   const { dow, day: dayNum, month } = parseDateLocal(day.date);
   const [, start] = useTransition();
+  const [manageMode, setManageMode] = useState(false);
 
   const streakItems  = day.checklist.filter(i => i.isStreak);
   const regularItems = day.checklist.filter(i => !i.isStreak);
@@ -396,6 +399,16 @@ function TodaySection({
 
   const handleUnmarkStreak = (id: string) => {
     start(async () => { await toggleStreakFlag(id, false); onStreakToggle(id, false); });
+  };
+
+  const moveItem = (idx: number, dir: -1 | 1) => {
+    const newItems = [...regularItems];
+    const target = idx + dir;
+    if (target < 0 || target >= newItems.length) return;
+    [newItems[idx], newItems[target]] = [newItems[target], newItems[idx]];
+    const fullChecklist = [...streakItems, ...newItems];
+    onChecklistReorder(fullChecklist);
+    start(async () => { await reorderChecklistItems(fullChecklist.map(i => i.id)); });
   };
 
   return (
@@ -471,22 +484,94 @@ function TodaySection({
 
         {/* Śledzenie */}
         <div>
-          <div className="label-eyebrow" style={{ marginBottom: 10 }}>Śledzenie</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            {regularItems.map(item => (
-              <ChecklistChip
-                key={item.id}
-                itemId={item.id}
-                date={day.date}
-                name={item.name}
-                done={item.done}
-                onDelete={() => handleDeleteChecklist(item.id)}
-                onMarkStreak={() => handleMarkStreak(item.id)}
-              />
-            ))}
-            <AddChecklistForm onAdded={() => {}} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div className="label-eyebrow">Śledzenie</div>
+            {regularItems.length > 1 && (
+              <button
+                onClick={() => setManageMode(m => !m)}
+                style={{
+                  height: 22, padding: '0 8px',
+                  background: manageMode ? 'var(--lo-accent-soft)' : 'transparent',
+                  color: manageMode ? 'var(--lo-accent)' : 'var(--lo-text-dim)',
+                  border: '1px solid ' + (manageMode ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
+                  borderRadius: 5, fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+                }}
+              >
+                {manageMode ? 'Gotowe' : 'Kolejność'}
+              </button>
+            )}
           </div>
-          {regularItems.length === 0 && (
+          {manageMode ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {regularItems.map((item, idx) => (
+                <div key={item.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '7px 10px',
+                  background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)',
+                  borderRadius: 8,
+                }}>
+                  <div style={{ flex: 1, fontSize: 13 }}>{item.name}</div>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <button
+                      disabled={idx === 0}
+                      onClick={() => moveItem(idx, -1)}
+                      style={{
+                        display: 'grid', placeItems: 'center',
+                        width: 26, height: 26, borderRadius: 5,
+                        background: 'transparent', border: 'none',
+                        color: idx === 0 ? 'var(--lo-text-dim)' : 'var(--lo-text-muted)',
+                        cursor: idx === 0 ? 'default' : 'pointer',
+                      }}
+                    >
+                      <Icon name="arrow-up" size={12} />
+                    </button>
+                    <button
+                      disabled={idx === regularItems.length - 1}
+                      onClick={() => moveItem(idx, 1)}
+                      style={{
+                        display: 'grid', placeItems: 'center',
+                        width: 26, height: 26, borderRadius: 5,
+                        background: 'transparent', border: 'none',
+                        color: idx === regularItems.length - 1 ? 'var(--lo-text-dim)' : 'var(--lo-text-muted)',
+                        cursor: idx === regularItems.length - 1 ? 'default' : 'pointer',
+                      }}
+                    >
+                      <Icon name="arrow-down" size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteChecklist(item.id)}
+                      style={{
+                        display: 'grid', placeItems: 'center',
+                        width: 26, height: 26, borderRadius: 5,
+                        background: 'transparent', border: 'none',
+                        color: 'var(--lo-text-dim)', cursor: 'pointer',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-danger)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-text-dim)'; }}
+                    >
+                      <Icon name="trash" size={11} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+              {regularItems.map(item => (
+                <ChecklistChip
+                  key={item.id}
+                  itemId={item.id}
+                  date={day.date}
+                  name={item.name}
+                  done={item.done}
+                  onDelete={() => handleDeleteChecklist(item.id)}
+                  onMarkStreak={() => handleMarkStreak(item.id)}
+                />
+              ))}
+              <AddChecklistForm onAdded={() => {}} />
+            </div>
+          )}
+          {regularItems.length === 0 && !manageMode && (
             <div style={{ fontSize: 12, color: 'var(--lo-text-dim)', marginTop: 6 }}>
               Dodaj własne elementy do śledzenia. Kliknij 🔥 na chipie aby oznaczyć jako streak.
             </div>
@@ -807,6 +892,12 @@ export function DailyScreen({
     }
   };
 
+  const handleChecklistReorder = (newOrder: { id: string; name: string; done: boolean; isStreak: boolean }[]) => {
+    const date = todayData?.date;
+    if (!date) return;
+    setWeek(prev => prev.map(d => d.date === date ? { ...d, checklist: newOrder } : d));
+  };
+
   if (!todayData) return (
     <div style={{ padding: '40px 24px', color: 'var(--lo-text-muted)', fontSize: 13 }}>Ładowanie…</div>
   );
@@ -818,6 +909,7 @@ export function DailyScreen({
         streakCounts={streakCounts}
         onChecklistDelete={handleChecklistDelete}
         onStreakToggle={handleStreakToggle}
+        onChecklistReorder={handleChecklistReorder}
       />
       {initialTrackers.length > 0 && (
         <StreaksSection initialTrackers={initialTrackers} />

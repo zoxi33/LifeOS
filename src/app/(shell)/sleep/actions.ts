@@ -14,7 +14,9 @@ export async function getSleepLogs(): Promise<SleepDay[]> {
     .limit(30);
 
   return (data ?? []).reverse().map((e, i) => ({
+    id:      e.id,
     date:    i,
+    dateStr: e.date as string,
     hours:   e.hours    ?? 0,
     bed:     e.bed_time ?? 22.5,
     wake:    e.wake_time ?? 6.5,
@@ -30,6 +32,22 @@ export async function logSleep(data: {
     .from('sleep_logs')
     .upsert({ ...data, date: today() }, { onConflict: 'date' });
   if (error) throw new Error(error.message);
+  revalidatePath('/sleep');
+  revalidatePath('/today');
+}
+
+export async function updateSleepLog(id: string, data: {
+  hours: number; bed_time: number; wake_time: number; quality: number;
+}) {
+  const sb = await createClient();
+  await sb.from('sleep_logs').update(data).eq('id', id);
+  revalidatePath('/sleep');
+  revalidatePath('/today');
+}
+
+export async function deleteSleepLog(id: string) {
+  const sb = await createClient();
+  await sb.from('sleep_logs').delete().eq('id', id);
   revalidatePath('/sleep');
   revalidatePath('/today');
 }

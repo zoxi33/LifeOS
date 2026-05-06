@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { today, weekStart, daysAgo, computeStreak } from '@/lib/supabase/queries';
+import { today, weekStart, daysAgo, computeStreak, computeBestStreak } from '@/lib/supabase/queries';
 import type { TodayHabit, HabitFull } from '@/types/lifeos';
 
 export async function getHabitsForToday(): Promise<TodayHabit[]> {
@@ -81,9 +81,15 @@ export async function getHabitsList(): Promise<HabitFull[]> {
     const all = (logs90 ?? []).filter(l => l.habit_id === h.id);
     const wk  = (weekLogs ?? []).filter(l => l.habit_id === h.id);
     const done = all.filter(l => l.done).length;
-    const completionRate = all.length ? done / all.length : 0;
+    // days since habit was created, capped at 90
+    const createdAt = h.created_at ? new Date(h.created_at) : new Date(since);
+    const daysSinceCreated = Math.min(90, Math.max(1,
+      Math.round((Date.now() - createdAt.getTime()) / 86400000)
+    ));
+    const completionRate = done / daysSinceCreated;
     const weekDone = wk.filter(l => l.done).length;
     const streak = computeStreak(all, h.type, h.target);
+    const todayDone = wk.find(l => l.date === t)?.done ?? false;
 
     return {
       id: h.id,
@@ -92,10 +98,11 @@ export async function getHabitsList(): Promise<HabitFull[]> {
       freq: h.freq,
       type: h.type as HabitFull['type'],
       streak,
-      best: streak,
+      best: computeBestStreak(all),
       completionRate,
       target: h.target,
       week: weekDone,
+      todayDone,
     };
   });
 }
@@ -129,6 +136,7 @@ export async function createHabit(data: {
     completionRate: 0,
     target: row.target,
     week: 0,
+    todayDone: false,
   };
 }
 

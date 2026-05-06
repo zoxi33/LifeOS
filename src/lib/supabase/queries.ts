@@ -22,6 +22,30 @@ export function daysAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+export function computeBestStreak(
+  logs: { date: string; done: boolean }[]
+): number {
+  if (!logs.length) return 0;
+  const sorted = [...logs]
+    .filter(l => l.done)
+    .map(l => l.date)
+    .sort();
+  let best = 0, run = 0, prev: string | null = null;
+  for (const d of sorted) {
+    if (prev) {
+      const diff = Math.round(
+        (new Date(d + 'T00:00:00').getTime() - new Date(prev + 'T00:00:00').getTime()) / 86400000
+      );
+      run = diff === 1 ? run + 1 : 1;
+    } else {
+      run = 1;
+    }
+    if (run > best) best = run;
+    prev = d;
+  }
+  return best;
+}
+
 export function computeStreak(
   logs: { date: string; done: boolean }[],
   type: string,

@@ -5,7 +5,7 @@ import { Icon } from '@/components/primitives/icon';
 import { HabitRing } from '@/components/primitives/habit-ring';
 import { Bar } from '@/components/primitives/bar';
 import { AddGoalDialog } from './add-goal-dialog';
-import { updateGoalProgress, toggleMilestone, deactivateGoal } from '@/app/(shell)/goals/actions';
+import { updateGoalProgress, toggleMilestone, deactivateGoal, addMilestone, deleteMilestone } from '@/app/(shell)/goals/actions';
 import type { Goal, Milestone } from '@/types/lifeos';
 
 function GoalDetail({ g, onProgressSaved, onDeactivated }: {
@@ -17,9 +17,13 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
   const [saving, startSave] = useTransition();
   const [deactivating, startDeactivate] = useTransition();
   const [confirmDel, setConfirmDel] = useState(false);
+  const [localMilestones, setLocalMilestones] = useState<Milestone[]>(g.milestones);
+  const [newMilestoneName, setNewMilestoneName] = useState('');
+  const [newMilestoneDue, setNewMilestoneDue] = useState('');
+  const [addingMilestone, startAddMilestone] = useTransition();
 
   const [milestones, updateMilestone] = useOptimistic(
-    g.milestones,
+    localMilestones,
     (prev: Milestone[], { id, done }: { id: string; done: boolean }) =>
       prev.map(m => m.id === id ? { ...m, done } : m),
   );
@@ -35,7 +39,23 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
 
   const handleMilestoneToggle = async (m: Milestone) => {
     updateMilestone({ id: m.id, done: !m.done });
+    setLocalMilestones(prev => prev.map(x => x.id === m.id ? { ...x, done: !x.done } : x));
     await toggleMilestone(m.id, !m.done);
+  };
+
+  const handleAddMilestone = () => {
+    if (!newMilestoneName.trim()) return;
+    startAddMilestone(async () => {
+      const created = await addMilestone(g.id, newMilestoneName.trim(), newMilestoneDue || undefined);
+      setLocalMilestones(prev => [...prev, created]);
+      setNewMilestoneName('');
+      setNewMilestoneDue('');
+    });
+  };
+
+  const handleDeleteMilestone = (id: string) => {
+    setLocalMilestones(prev => prev.filter(m => m.id !== id));
+    deleteMilestone(id);
   };
 
   const pct = Math.min(100, Math.round((parseFloat(inputVal) / (g.target || 1)) * 100));
@@ -141,12 +161,12 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
       <div>
         <div className="label-eyebrow" style={{ marginBottom: 14 }}>Kamienie milowe</div>
         {milestones.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--lo-text-muted)' }}>Brak kamieni milowych.</div>
+          <div style={{ fontSize: 13, color: 'var(--lo-text-muted)', marginBottom: 12 }}>Brak kamieni milowych.</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 12 }}>
             {milestones.map((m, i) => (
               <div key={m.id} style={{
-                display: 'flex', alignItems: 'center', gap: 14,
+                display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 0',
                 borderBottom: i < milestones.length - 1 ? '1px solid var(--lo-border)' : 'none',
               }}>
@@ -168,13 +188,69 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
                   textDecoration: m.done ? 'line-through' : 'none',
                   textDecorationColor: 'var(--lo-text-dim)',
                 }}>{m.name}</div>
-                <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)' }}>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)', flexShrink: 0 }}>
                   {m.date}
                 </div>
+                <button
+                  onClick={() => handleDeleteMilestone(m.id)}
+                  style={{
+                    display: 'grid', placeItems: 'center',
+                    width: 22, height: 22, borderRadius: 5, flexShrink: 0,
+                    background: 'transparent', border: 'none',
+                    color: 'var(--lo-text-dim)', cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-danger)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--lo-surface-2)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--lo-text-dim)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                >
+                  <Icon name="trash" size={11} />
+                </button>
               </div>
             ))}
           </div>
         )}
+
+        {/* Add milestone form */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <input
+              placeholder="Nowy kamień milowy…"
+              value={newMilestoneName}
+              onChange={e => setNewMilestoneName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddMilestone()}
+              style={{
+                width: '100%', height: 32, padding: '0 10px',
+                background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)',
+                borderRadius: 8, color: 'var(--lo-text)', fontFamily: 'inherit', fontSize: 13,
+              }}
+            />
+          </div>
+          <div>
+            <input
+              type="date"
+              value={newMilestoneDue}
+              onChange={e => setNewMilestoneDue(e.target.value)}
+              style={{
+                height: 32, padding: '0 8px',
+                background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)',
+                borderRadius: 8, color: newMilestoneDue ? 'var(--lo-text)' : 'var(--lo-text-faint)',
+                fontFamily: 'var(--font-geist-mono)', fontSize: 12,
+              }}
+            />
+          </div>
+          <button
+            onClick={handleAddMilestone}
+            disabled={!newMilestoneName.trim() || addingMilestone}
+            style={{
+              height: 32, padding: '0 14px', flexShrink: 0,
+              background: 'var(--lo-accent-soft)', color: 'var(--lo-accent)',
+              border: '1px solid var(--lo-accent-line)', borderRadius: 8,
+              fontSize: 13, fontFamily: 'inherit',
+              opacity: (!newMilestoneName.trim() || addingMilestone) ? 0.5 : 1,
+            }}
+          >
+            {addingMilestone ? '…' : 'Dodaj'}
+          </button>
+        </div>
       </div>
 
       {/* Deactivate */}

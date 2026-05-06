@@ -22,7 +22,13 @@ export function WeightScreen({
   rawPoints?: { date: string; weight: number }[];
 }) {
   const [logOpen, setLogOpen] = useState(false);
+  const [editEntry, setEditEntry] = useState<WeightEntry | null>(null);
+  const [entries, setEntries] = useState<WeightEntry[]>(initialEntries);
   const [period, setPeriod] = useState<Period>('90d');
+
+  const handleDeleted = (id: string) => {
+    setEntries(prev => prev.filter(e => e.id !== id));
+  };
 
   const filtered = useMemo(() => {
     const cutoff = new Date();
@@ -49,6 +55,12 @@ export function WeightScreen({
   return (
     <>
       <LogWeightDialog open={logOpen} onOpenChange={setLogOpen} />
+      <LogWeightDialog
+        open={!!editEntry}
+        onOpenChange={v => { if (!v) setEditEntry(null); }}
+        editEntry={editEntry}
+        onDeleted={handleDeleted}
+      />
       <div className="lo-screen" style={{
         padding: '20px 24px 40px',
         display: 'flex', flexDirection: 'column', gap: 16,
@@ -165,20 +177,27 @@ export function WeightScreen({
           borderRadius: 12, overflow: 'hidden',
         }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--lo-border)' }} className="label-eyebrow">
-            Ostatnie pomiary
+            Ostatnie pomiary — kliknij aby edytować
           </div>
-          {initialEntries.length === 0 ? (
+          {entries.length === 0 ? (
             <div style={{ padding: '20px 18px', fontSize: 13, color: 'var(--lo-text-muted)' }}>
               Brak pomiarów — kliknij „Zaloguj".
             </div>
           ) : (
-            initialEntries.map((e, i) => (
-              <div key={i} style={{
-                display: 'grid', gridTemplateColumns: '1fr 100px 100px',
-                alignItems: 'center', gap: 14,
-                padding: '12px 18px',
-                borderBottom: i < initialEntries.length - 1 ? '1px solid var(--lo-border)' : 'none',
-              }}>
+            entries.map((e, i) => (
+              <div
+                key={e.id}
+                onClick={() => setEditEntry(e)}
+                style={{
+                  display: 'grid', gridTemplateColumns: '1fr 100px 100px',
+                  alignItems: 'center', gap: 14,
+                  padding: '12px 18px',
+                  borderBottom: i < entries.length - 1 ? '1px solid var(--lo-border)' : 'none',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={el => { (el.currentTarget as HTMLDivElement).style.background = 'var(--lo-bg-2)'; }}
+                onMouseLeave={el => { (el.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+              >
                 <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 12, color: 'var(--lo-text-muted)' }}>{e.d}</div>
                 <div style={{
                   textAlign: 'right', fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',

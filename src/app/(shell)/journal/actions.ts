@@ -26,7 +26,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
 
 export async function createJournalEntry(data: {
   date: string; title: string; body: string;
-  mood: number; sleep_hours: number; weight_kg: number; tags: string[];
+  mood: number | null; sleep_hours: number | null; weight_kg: number | null; tags: string[];
 }) {
   const sb = await createClient();
   const { error } = await sb.from('journal_entries').insert(data);
