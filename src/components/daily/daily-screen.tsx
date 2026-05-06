@@ -8,6 +8,7 @@ import {
 } from '@/app/(shell)/daily/actions';
 import { streakBreakPenalty, nextStreakMilestone } from '@/lib/streak-utils';
 import { StreaksSection } from '@/components/streaks/streaks-section';
+import { fmtWaterShort } from '@/lib/water-utils';
 import type { DayData, ChecklistItemDef } from '@/app/(shell)/daily/actions';
 import type { StreakTracker } from '@/app/(shell)/streaks/actions';
 
@@ -556,12 +557,10 @@ function WeekDayDetail({ day, streakCounts }: { day: DayData; streakCounts: Reco
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
           minWidth: 90, padding: '14px 12px',
-          background: day.waterGlasses >= day.waterTarget
+          background: day.waterMl >= day.waterTargetMl
             ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)'
-            : day.waterGlasses > 0
-              ? 'var(--lo-surface-2)'
-              : 'var(--lo-surface-2)',
-          border: '1px solid ' + (day.waterGlasses >= day.waterTarget
+            : 'var(--lo-surface-2)',
+          border: '1px solid ' + (day.waterMl >= day.waterTargetMl
             ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)'
             : 'var(--lo-border)'),
           borderRadius: 10,
@@ -570,10 +569,10 @@ function WeekDayDetail({ day, streakCounts }: { day: DayData; streakCounts: Reco
           <div style={{
             fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
             fontSize: 13, fontWeight: 500,
-            color: day.waterGlasses >= day.waterTarget ? 'var(--lo-info)'
-              : day.waterGlasses > 0 ? 'var(--lo-text-muted)'
+            color: day.waterMl >= day.waterTargetMl ? 'var(--lo-info)'
+              : day.waterMl > 0 ? 'var(--lo-text-muted)'
               : 'var(--lo-text-dim)',
-          }}>{day.waterGlasses}/{day.waterTarget}</div>
+          }}>{fmtWaterShort(day.waterMl)}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>woda</div>
         </div>
 

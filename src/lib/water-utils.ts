@@ -1,9 +1,11 @@
-const GLASSES_PER_LITRE = 4; // 250 ml per glass
-
-export function litresToGlasses(l: number): number {
-  return Math.round(l * GLASSES_PER_LITRE);
+/** Format ml as "1.25 L" or "750 ml" */
+export function fmtWater(ml: number): string {
+  if (ml >= 1000) return `${(ml / 1000).toFixed(2).replace(/\.?0+$/, '')} L`;
+  return `${ml} ml`;
 }
 
-export function glassesToLitres(g: number): number {
-  return +(g / GLASSES_PER_LITRE).toFixed(2);
+/** Format ml as short label e.g. "1.2 L" */
+export function fmtWaterShort(ml: number): string {
+  if (ml >= 1000) return `${(ml / 1000).toFixed(1)} L`;
+  return `${ml} ml`;
 }

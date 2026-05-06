@@ -321,9 +321,9 @@ export type Database = {
         Relationships: [];
       };
       water_logs: {
-        Row: { id: string; date: string; glasses: number; target: number; };
-        Insert: { id?: string; date: string; glasses?: number; target?: number; };
-        Update: { id?: string; date?: string; glasses?: number; target?: number; };
+        Row: { id: string; date: string; ml: number; target_ml: number; };
+        Insert: { id?: string; date: string; ml?: number; target_ml?: number; };
+        Update: { id?: string; date?: string; ml?: number; target_ml?: number; };
         Relationships: [];
       };
       streak_trackers: {

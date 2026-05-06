@@ -1,9 +1,10 @@
 'use client';
 
 import { WaterWidget } from './water-widget';
+import { fmtWater, fmtWaterShort } from '@/lib/water-utils';
 import type { WaterLog } from '@/app/(shell)/water/actions';
 
-interface DayRow { date: string; glasses: number; target: number; }
+interface DayRow { date: string; ml: number; target_ml: number; }
 
 function Bar28({ history }: { history: DayRow[] }) {
   const map = Object.fromEntries(history.map(r => [r.date, r]));
@@ -17,12 +18,12 @@ function Bar28({ history }: { history: DayRow[] }) {
     <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 56 }}>
       {days.map(date => {
         const row = map[date];
-        const pct = row ? Math.min(1, row.glasses / (row.target || 8)) : 0;
+        const pct = row ? Math.min(1, row.ml / (row.target_ml || 3000)) : 0;
         const isToday = date === new Date().toISOString().slice(0, 10);
         return (
           <div
             key={date}
-            title={`${date}: ${row?.glasses ?? 0}/${row?.target ?? 8}`}
+            title={`${date}: ${fmtWater(row?.ml ?? 0)} / ${fmtWater(row?.target_ml ?? 3000)}`}
             style={{
               flex: 1, minWidth: 6,
               height: `${Math.max(4, Math.round(pct * 52))}px`,
@@ -42,12 +43,10 @@ function Bar28({ history }: { history: DayRow[] }) {
 }
 
 export function WaterHistoryScreen({ history, todayLog }: { history: DayRow[]; todayLog: WaterLog }) {
-  const initialWater = todayLog;
-
   const totalDays = history.length;
-  const metGoal = history.filter(r => r.glasses >= r.target).length;
-  const avgGlasses = totalDays
-    ? +(history.reduce((s, r) => s + r.glasses, 0) / totalDays).toFixed(1)
+  const metGoal = history.filter(r => r.ml >= r.target_ml).length;
+  const avgMl = totalDays
+    ? Math.round(history.reduce((s, r) => s + r.ml, 0) / totalDays)
     : 0;
 
   return (
@@ -64,8 +63,8 @@ export function WaterHistoryScreen({ history, todayLog }: { history: DayRow[]; t
       <div className="lo-grid-3col">
         {[
           { label: 'Cel osiągnięty', value: `${metGoal}/${totalDays}`, unit: 'dni' },
-          { label: 'Średnia', value: String(avgGlasses), unit: 'szkl./dzień' },
-          { label: 'Dziś', value: String(initialWater.glasses), unit: `/ ${initialWater.target} szklanek` },
+          { label: 'Średnia', value: fmtWaterShort(avgMl), unit: '/ dzień' },
+          { label: 'Dziś', value: fmtWaterShort(todayLog.ml), unit: `/ ${todayLog.targetMl / 1000} L` },
         ].map(s => (
           <div key={s.label} style={{
             background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
@@ -73,7 +72,10 @@ export function WaterHistoryScreen({ history, todayLog }: { history: DayRow[]; t
           }}>
             <div className="label-eyebrow" style={{ marginBottom: 6 }}>{s.label}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 28, fontWeight: 500, color: 'var(--lo-info)' }}>{s.value}</span>
+              <span style={{
+                fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+                fontSize: 26, fontWeight: 500, color: 'var(--lo-info)',
+              }}>{s.value}</span>
               <span style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>{s.unit}</span>
             </div>
           </div>
@@ -81,7 +83,10 @@ export function WaterHistoryScreen({ history, todayLog }: { history: DayRow[]; t
       </div>
 
       {/* 28-day bar chart */}
-      <div style={{ background: 'var(--lo-surface)', border: '1px solid var(--lo-border)', borderRadius: 12, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{
+        background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
+        borderRadius: 12, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12,
+      }}>
         <div className="label-eyebrow">Ostatnie 28 dni</div>
         <Bar28 history={history} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--lo-text-dim)', fontFamily: 'var(--font-geist-mono)' }}>
@@ -90,7 +95,7 @@ export function WaterHistoryScreen({ history, todayLog }: { history: DayRow[]; t
       </div>
 
       {/* Today widget */}
-      <WaterWidget initial={initialWater} />
+      <WaterWidget initial={todayLog} />
     </div>
   );
 }

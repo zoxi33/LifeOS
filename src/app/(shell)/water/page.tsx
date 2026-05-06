@@ -8,7 +8,7 @@ async function getWaterHistory() {
   since.setDate(since.getDate() - 27);
   const { data } = await sb
     .from('water_logs')
-    .select('date, glasses, target')
+    .select('date, ml, target_ml')
     .gte('date', since.toISOString().slice(0, 10))
     .order('date', { ascending: false });
   return data ?? [];
