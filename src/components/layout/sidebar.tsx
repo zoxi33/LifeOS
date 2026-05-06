@@ -22,6 +22,7 @@ const primaryItems: NavItem[] = [
 ];
 
 const subItems: NavItem[] = [
+  { href: '/streaks', icon: 'flame',  label: 'Streaki' },
   { href: '/goals',   icon: 'goal',   label: 'Cele' },
   { href: '/finance', icon: 'wallet', label: 'Finanse' },
   { href: '/sleep',   icon: 'moon',   label: 'Sen' },
