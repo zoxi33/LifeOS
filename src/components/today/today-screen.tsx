@@ -89,7 +89,7 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
       }}>
 
         {/* ── Top row ──────────────────────────────────────────────── */}
-        <div className="lo-mobile-1col" style={{
+        <div className={streakProm === 'high' ? 'lo-mobile-1col' : 'lo-today-top-row'} style={{
           display: 'grid',
           gridTemplateColumns: streakProm === 'high' ? '1fr' : '1.2fr 1fr 1fr',
           gap: 16,
@@ -98,8 +98,8 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
             <StreakCard days={bestStreak} label={bestStreakHabit?.name ?? 'Streak'} since="" prominence="high" />
           ) : (
             <>
-              {/* Day progress */}
-              <div style={{
+              {/* Day progress — spans full width on mobile */}
+              <div className="lo-today-progress-full" style={{
                 background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
                 borderRadius: 12, padding: '18px 20px',
                 display: 'flex', flexDirection: 'column', gap: 14,
@@ -163,8 +163,8 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
 
         {/* ── Main 2-col: habits + quick log ──────────────────────── */}
         <div className="lo-mobile-1col" style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 16 }}>
-          {/* Habits card */}
-          <div style={{
+          {/* Habits card — order 2 on mobile (quicklog comes first) */}
+          <div className="lo-today-habits" style={{
             background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
             borderRadius: 12, padding: '18px 20px',
           }}>
@@ -197,7 +197,8 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* QuickLog + Water — order 1 on mobile (shows before habits) */}
+          <div className="lo-today-quicklog" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <QuickLog />
             {water && <WaterWidget initial={water} />}
           </div>
@@ -257,7 +258,7 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
             }}>
               Co dziś poszło dobrze? Co cię zaskoczyło? Co możesz zrobić jutro lepiej?
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="lo-kbd-hint" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-dim)' }}>
                 szybki log dzienniczy → QuickLog po lewej
               </div>

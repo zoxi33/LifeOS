@@ -23,7 +23,7 @@ export function GoalsStrip({ goals = [] }: { goals?: Goal[] }) {
       borderRadius: 12, padding: '18px 20px',
     }}>
       <SectionHeader eyebrow="Cele długoterminowe" title="W toku" />
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${active.length}, 1fr)`, gap: 16 }}>
+      <div className="lo-goals-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${active.length}, 1fr)`, gap: 16 }}>
         {active.map(g => (
           <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 450 }}>{g.name}</div>

@@ -23,7 +23,7 @@ export function StreakCard({ days, label, since, best, prominence = 'medium', on
         gridColumn: big ? '1 / -1' : 'auto',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
         <div className="label-eyebrow">{label}</div>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -58,7 +58,7 @@ export function StreakCard({ days, label, since, best, prominence = 'medium', on
         )}
       </div>
 
-      <div style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>od {since}</div>
+      {since && <div style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>od {since}</div>}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <button

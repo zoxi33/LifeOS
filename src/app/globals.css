@@ -197,7 +197,7 @@ input[type="range"] {
 /* Force 1-col on mobile — use alongside inline style for dynamic desktop cols */
 @media (max-width: 767px) {
   .lo-grid-4col   { grid-template-columns: repeat(2, 1fr) !important; }
-  .lo-grid-3col   { grid-template-columns: 1fr !important; }
+  .lo-grid-3col   { grid-template-columns: repeat(2, 1fr) !important; }
   .lo-grid-2col   { grid-template-columns: 1fr !important; }
   .lo-grid-sidebar{ grid-template-columns: 1fr !important; }
 
@@ -211,8 +211,8 @@ input[type="range"] {
 
   /* Reduce side padding on small screens */
   .lo-screen {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
   }
 
   /* Hide elements only on mobile */
@@ -241,6 +241,23 @@ input[type="range"] {
   /* Habits header: wrap on mobile */
   .lo-habits-header { flex-wrap: wrap !important; gap: 10px !important; align-items: flex-start !important; }
   .lo-habits-filters { flex-wrap: wrap !important; gap: 4px !important; }
+
+  /* Goals grid: always 1-col on mobile to prevent horizontal overflow */
+  .lo-goals-grid { grid-template-columns: 1fr !important; }
+
+  /* Today top row: Postęp dnia pełna szerokość, Streak + XP obok siebie */
+  .lo-today-top-row { grid-template-columns: 1fr 1fr !important; }
+  .lo-today-progress-full { grid-column: 1 / -1; }
+
+  /* Today: quicklog panel before habits on mobile */
+  .lo-today-habits { order: 2; }
+  .lo-today-quicklog { order: 1; }
+
+  /* Hide desktop-only keyboard shortcut hints */
+  .lo-kbd-hint { display: none !important; }
+
+  /* lo-grid-3col 3rd item on mobile: span both columns so it's full-width */
+  .lo-grid-3col > *:last-child:nth-child(3) { grid-column: 1 / -1; }
 }
 
 /* ─────────────────────────────────────────────────────────────────
