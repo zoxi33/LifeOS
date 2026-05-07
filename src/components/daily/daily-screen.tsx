@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useOptimistic, useCallback, useRef } from 'react';
+import React, { useState, useTransition, useOptimistic, useCallback, useRef } from 'react';
 import { Icon } from '@/components/primitives/icon';
 import {
   upsertFocus, upsertWork, toggleHabitForDate, toggleChecklistItem,
@@ -608,146 +608,110 @@ function WeekDayDetail({ day, streakCounts }: { day: DayData; streakCounts: Reco
   const streakItems  = day.checklist.filter(i => i.isStreak);
   const regularItems = day.checklist.filter(i => !i.isStreak);
 
-  return (
-    <div style={{ overflowX: 'auto', padding: '4px 0' }}>
-      <div style={{ display: 'flex', gap: 10, minWidth: 'max-content', padding: '2px 0 8px' }}>
+  const cell = (bg: string, border: string): React.CSSProperties => ({
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+    padding: '14px 12px', background: bg,
+    border: '1px solid ' + border, borderRadius: 10,
+  });
 
-        {/* Focus cell */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          minWidth: 90, padding: '14px 12px',
-          background: day.focusMinutes > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
-          border: '1px solid ' + (day.focusMinutes > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
-          borderRadius: 10,
-        }}>
+  return (
+    <div style={{ padding: '4px 0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 10, padding: '2px 0 8px' }}>
+
+        {/* Focus */}
+        <div style={cell(
+          day.focusMinutes > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+          day.focusMinutes > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)',
+        )}>
           <div style={{ fontSize: 18 }}>🌲</div>
           <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.focusMinutes > 0 ? 'var(--lo-accent)' : 'var(--lo-text-dim)' }}>{fmtMinutes(day.focusMinutes)}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>focus</div>
         </div>
 
-        {/* Work cell */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          minWidth: 90, padding: '14px 12px',
-          background: day.workMinutes > 0 ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
-          border: '1px solid ' + (day.workMinutes > 0 ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)'),
-          borderRadius: 10,
-        }}>
+        {/* Work */}
+        <div style={cell(
+          day.workMinutes > 0 ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
+          day.workMinutes > 0 ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+        )}>
           <div style={{ fontSize: 18 }}>💼</div>
           <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.workMinutes > 0 ? 'var(--lo-info)' : 'var(--lo-text-dim)' }}>{fmtMinutes(day.workMinutes)}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>praca</div>
         </div>
 
-        {/* Water cell */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          minWidth: 90, padding: '14px 12px',
-          background: day.waterMl >= day.waterTargetMl
-            ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)'
-            : 'var(--lo-surface-2)',
-          border: '1px solid ' + (day.waterMl >= day.waterTargetMl
-            ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)'
-            : 'var(--lo-border)'),
-          borderRadius: 10,
-        }}>
+        {/* Water */}
+        <div style={cell(
+          day.waterMl >= day.waterTargetMl ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
+          day.waterMl >= day.waterTargetMl ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+        )}>
           <div style={{ fontSize: 18 }}>💧</div>
-          <div style={{
-            fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
-            fontSize: 13, fontWeight: 500,
-            color: day.waterMl >= day.waterTargetMl ? 'var(--lo-info)'
-              : day.waterMl > 0 ? 'var(--lo-text-muted)'
-              : 'var(--lo-text-dim)',
-          }}>{fmtWaterShort(day.waterMl)}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.waterMl >= day.waterTargetMl ? 'var(--lo-info)' : day.waterMl > 0 ? 'var(--lo-text-muted)' : 'var(--lo-text-dim)' }}>{fmtWaterShort(day.waterMl)}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>woda</div>
         </div>
 
-        {/* Streak item cells */}
+        {/* Streak items */}
         {streakItems.map(item => (
-          <div key={item.id} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-            minWidth: 90, padding: '12px 12px',
-            background: item.done
-              ? 'color-mix(in oklch, var(--lo-warn) 14%, transparent)'
-              : streakCounts[item.id] > 0
-                ? 'color-mix(in oklch, var(--lo-warn) 6%, transparent)'
-                : 'var(--lo-surface-2)',
-            border: '1px solid ' + (item.done ? 'var(--lo-warn)' : streakCounts[item.id] > 0 ? 'color-mix(in oklch, var(--lo-warn) 35%, transparent)' : 'var(--lo-border)'),
-            borderRadius: 10,
-          }}>
+          <div key={item.id} style={cell(
+            item.done ? 'color-mix(in oklch, var(--lo-warn) 14%, transparent)' : streakCounts[item.id] > 0 ? 'color-mix(in oklch, var(--lo-warn) 6%, transparent)' : 'var(--lo-surface-2)',
+            item.done ? 'var(--lo-warn)' : streakCounts[item.id] > 0 ? 'color-mix(in oklch, var(--lo-warn) 35%, transparent)' : 'var(--lo-border)',
+          )}>
             <div style={{ fontSize: 16 }}>{item.done ? '🔥' : '○'}</div>
-            <div style={{
-              fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
-              fontSize: 18, fontWeight: 700, lineHeight: 1,
-              color: item.done ? 'var(--lo-warn)' : 'var(--lo-text-dim)',
-            }}>{streakCounts[item.id] ?? 0}</div>
-            <div style={{ fontSize: 10, color: item.done ? 'var(--lo-warn)' : 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)', textAlign: 'center', maxWidth: 80, lineHeight: 1.2 }}>{item.name}</div>
+            <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 18, fontWeight: 700, lineHeight: 1, color: item.done ? 'var(--lo-warn)' : 'var(--lo-text-dim)' }}>{streakCounts[item.id] ?? 0}</div>
+            <div style={{ fontSize: 10, color: item.done ? 'var(--lo-warn)' : 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)', textAlign: 'center', lineHeight: 1.2 }}>{item.name}</div>
           </div>
         ))}
 
         {/* Habit cells */}
         {day.habits.map(h => (
-          <div key={h.id} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            minWidth: 90, padding: '14px 12px',
-            background: h.done ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
-            border: '1px solid ' + (h.done ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
-            borderRadius: 10,
-          }}>
+          <div key={h.id} style={cell(
+            h.done ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+            h.done ? 'var(--lo-accent-line)' : 'var(--lo-border)',
+          )}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: h.done ? 'var(--lo-accent)' : 'transparent', border: '1px solid ' + (h.done ? 'var(--lo-accent)' : 'var(--lo-border-strong)'), display: 'grid', placeItems: 'center' }}>
               {h.done && <Icon name="check" size={13} style={{ color: 'var(--lo-bg)' }} />}
             </div>
-            <div style={{ fontSize: 11, textAlign: 'center', maxWidth: 80, color: h.done ? 'var(--lo-accent)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{h.name}</div>
+            <div style={{ fontSize: 11, textAlign: 'center', color: h.done ? 'var(--lo-accent)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{h.name}</div>
           </div>
         ))}
 
         {/* Regular checklist cells */}
         {regularItems.map(item => (
-          <div key={item.id} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            minWidth: 90, padding: '14px 12px',
-            background: item.done ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
-            border: '1px solid ' + (item.done ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)'),
-            borderRadius: 10,
-          }}>
+          <div key={item.id} style={cell(
+            item.done ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
+            item.done ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+          )}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: item.done ? 'var(--lo-info)' : 'transparent', border: '1px solid ' + (item.done ? 'var(--lo-info)' : 'var(--lo-border-strong)'), display: 'grid', placeItems: 'center' }}>
               {item.done && <Icon name="check" size={13} style={{ color: 'var(--lo-bg)' }} />}
             </div>
-            <div style={{ fontSize: 11, textAlign: 'center', maxWidth: 80, color: item.done ? 'var(--lo-info)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{item.name}</div>
+            <div style={{ fontSize: 11, textAlign: 'center', color: item.done ? 'var(--lo-info)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{item.name}</div>
           </div>
         ))}
 
-        {/* Divider */}
-        <div style={{ width: 1, background: 'var(--lo-border)', alignSelf: 'stretch', margin: '0 4px', flexShrink: 0 }} />
-
         {/* Sleep */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 80, padding: '14px 12px', background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)', borderRadius: 10 }}>
+        <div style={cell('var(--lo-surface-2)', 'var(--lo-border)')}>
           <div style={{ fontSize: 18 }}>😴</div>
           <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.sleepHours != null && day.sleepHours >= 7 ? 'var(--lo-accent)' : 'var(--lo-text)' }}>{day.sleepHours != null ? `${day.sleepHours}h` : '—'}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>sen</div>
         </div>
 
         {/* Weight */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 80, padding: '14px 12px', background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)', borderRadius: 10 }}>
+        <div style={cell('var(--lo-surface-2)', 'var(--lo-border)')}>
           <div style={{ fontSize: 18 }}>⚖️</div>
           <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500 }}>{day.weightKg != null ? `${day.weightKg}kg` : '—'}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>waga</div>
         </div>
 
         {/* Mood */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 80, padding: '14px 12px', background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)', borderRadius: 10 }}>
+        <div style={cell('var(--lo-surface-2)', 'var(--lo-border)')}>
           <div style={{ fontSize: 20 }}>{moodEmoji(day.mood)}</div>
           <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500 }}>{day.mood != null ? `${day.mood}/5` : '—'}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>nastrój</div>
         </div>
 
         {/* Summary */}
-        <div style={{ width: 1, background: 'var(--lo-border)', alignSelf: 'stretch', margin: '0 4px', flexShrink: 0 }} />
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 80, padding: '14px 12px',
-          background: doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
-          border: '1px solid ' + (doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
-          borderRadius: 10,
-        }}>
+        <div style={cell(
+          doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+          doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)',
+        )}>
           <div style={{ fontSize: 18 }}>✓</div>
           <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent)' : 'var(--lo-text)' }}>{doneDone}/{day.habits.length}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>nawyki</div>
