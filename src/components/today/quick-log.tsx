@@ -5,7 +5,7 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { Icon } from '@/components/primitives/icon';
 import { logSleep } from '@/app/(shell)/sleep/actions';
 import { logWeight } from '@/app/(shell)/weight/actions';
-import { createJournalEntry } from '@/app/(shell)/journal/actions';
+import { upsertJournalEntry } from '@/app/(shell)/journal/actions';
 
 const MOOD_LABELS = ['', 'Kiepski', 'Słaby', 'Średni', 'Dobry', 'Świetny'];
 
@@ -47,7 +47,7 @@ export function QuickLog() {
   const saveMood = () => {
     const today = new Date().toISOString().slice(0, 10);
     startMood(async () => {
-      await createJournalEntry({ date: today, title: '', body: '', mood, sleep_hours: null, weight_kg: null, tags: [] });
+      await upsertJournalEntry({ date: today, title: '', body: '', mood, sleep_hours: null, weight_kg: null, tags: [] });
       flashSaved('mood');
     });
   };

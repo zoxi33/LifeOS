@@ -103,6 +103,7 @@ export async function getHabitsList(): Promise<HabitFull[]> {
       target: h.target,
       week: weekDone,
       todayDone,
+      logs: all.map(l => ({ date: l.date, done: l.done })),
     };
   });
 }
@@ -137,6 +138,7 @@ export async function createHabit(data: {
     target: row.target,
     week: 0,
     todayDone: false,
+    logs: [],
   };
 }
 

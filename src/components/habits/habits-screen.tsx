@@ -15,11 +15,10 @@ function HabitDetail({ h, onDelete }: { h: HabitFull; onDelete: (id: string) => 
   const [confirm, setConfirm] = useState(false);
   const [pending, start] = useTransition();
 
-  const seed = h.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const getValue = (_date: Date, idx: number): number => {
-    const x = Math.sin(seed * 9.7 + idx * 1.3) * 0.5 + 0.5;
-    if (h.type === 'weekly') return idx % 7 < h.target && x > 0.4 ? Math.min(2, Math.floor(x * 2.5)) : 0;
-    return x > (1 - h.completionRate) ? Math.min(2, Math.floor(x * 2.5)) : 0;
+  const logMap = new Map(h.logs.map(l => [l.date, l.done]));
+  const getValue = (date: Date, _idx: number): number => {
+    const ds = date.toISOString().slice(0, 10);
+    return logMap.get(ds) ? 2 : 0;
   };
 
   return (

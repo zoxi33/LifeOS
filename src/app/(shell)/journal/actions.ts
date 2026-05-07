@@ -24,14 +24,28 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
   }));
 }
 
-export async function createJournalEntry(data: {
+export async function upsertJournalEntry(data: {
   date: string; title: string; body: string;
   mood: number | null; sleep_hours: number | null; weight_kg: number | null; tags: string[];
-}) {
+}): Promise<JournalEntry> {
   const sb = await createClient();
-  const { error } = await sb.from('journal_entries').insert(data);
-  if (error) throw new Error(error.message);
+  const { data: row, error } = await sb
+    .from('journal_entries')
+    .upsert(data, { onConflict: 'date' })
+    .select()
+    .single();
+  if (error || !row) throw new Error(error?.message ?? 'upsert failed');
   revalidatePath('/journal');
+  return {
+    id: row.id,
+    date: row.date,
+    mood: row.mood ?? 3,
+    sleep: row.sleep_hours ?? 0,
+    weight: row.weight_kg ?? 0,
+    title: row.title ?? '',
+    body: row.body ?? '',
+    tags: row.tags ?? [],
+  };
 }
 
 export async function updateJournalEntry(id: string, data: Partial<{
