@@ -1,6 +1,12 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { Icon } from '@/components/primitives/icon';
+
+const PushButton = dynamic(
+  () => import('@/components/pwa/push-button').then(m => ({ default: m.PushButton })),
+  { ssr: false }
+);
 
 interface TopBarProps {
   onCmd: () => void;
@@ -58,6 +64,8 @@ export function TopBar({ onCmd, onTweaks }: TopBarProps) {
           <Kbd>K</Kbd>
         </span>
       </button>
+
+      <PushButton />
 
       <button
         aria-label="Ustawienia"

@@ -7,6 +7,7 @@ import { Sidebar } from './sidebar';
 import { TopBar } from './top-bar';
 import { MobileTabBar } from './mobile-tab-bar';
 import { useTweaks } from '@/hooks/use-tweaks';
+import type { SidebarXP } from '@/app/(shell)/actions';
 
 const CommandPalette = dynamic(
   () => import('./command-palette').then(m => ({ default: m.CommandPalette })),
@@ -18,7 +19,7 @@ const TweaksPanel = dynamic(
   { ssr: false }
 );
 
-export function ShellClient({ children }: { children: React.ReactNode }) {
+export function ShellClient({ children, xp }: { children: React.ReactNode; xp: SidebarXP }) {
   const [cmd, setCmd] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const router = useRouter();
@@ -57,7 +58,7 @@ export function ShellClient({ children }: { children: React.ReactNode }) {
       style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--lo-bg)' }}
     >
       <div className="hidden md:flex" style={{ flexShrink: 0 }}>
-        <Sidebar />
+        <Sidebar xp={xp} />
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>

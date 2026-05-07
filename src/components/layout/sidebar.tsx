@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Icon } from '@/components/primitives/icon';
 import { signOut } from '@/app/(shell)/actions';
+import type { SidebarXP } from '@/app/(shell)/actions';
 
 interface NavItem {
   href: string;
@@ -85,7 +86,7 @@ function SidebarItem({ item, primary = false }: { item: NavItem; primary?: boole
   );
 }
 
-function UserFooter() {
+function UserFooter({ xp }: { xp: SidebarXP }) {
   const [pending, start] = useTransition();
   const [hover, setHover] = useState(false);
 
@@ -109,7 +110,7 @@ function UserFooter() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0, lineHeight: 1.2 }}>
         <span style={{ fontSize: 12 }}>Michał</span>
         <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 10, color: 'var(--lo-text-dim)' }}>
-          Level 12 · 4,820 XP
+          Level {xp.level} · {xp.totalXP.toLocaleString()} XP
         </span>
       </div>
       <button
@@ -135,7 +136,7 @@ function UserFooter() {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ xp }: { xp: SidebarXP }) {
   return (
     <aside
       style={{
@@ -176,7 +177,7 @@ export function Sidebar() {
       {subItems.map(it => <SidebarItem key={it.href} item={it} />)}
 
       {/* User footer */}
-      <UserFooter />
+      <UserFooter xp={xp} />
     </aside>
   );
 }
