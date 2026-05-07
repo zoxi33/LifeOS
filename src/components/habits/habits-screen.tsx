@@ -4,17 +4,19 @@ import { useState, useTransition } from 'react';
 import { Icon } from '@/components/primitives/icon';
 import { Bar } from '@/components/primitives/bar';
 import { Heatmap } from '@/components/primitives/heatmap';
+import { RangePicker, type DateRange } from '@/components/primitives/range-picker';
 import { AddHabitDialog } from './add-habit-dialog';
-import { deleteHabit, toggleHabitLog } from '@/app/(shell)/habits/actions';
+import { deleteHabit, toggleHabitLog, getHabitsRange } from '@/app/(shell)/habits/actions';
 import type { HabitFull } from '@/types/lifeos';
 
 type FilterType = 'all' | 'daily' | 'weekly' | 'custom';
 
 /* ─── HabitDetail ──────────────────────────────────────────────────────────── */
-function HabitDetail({ h, onDelete }: { h: HabitFull; onDelete: (id: string) => void }) {
+function HabitDetail({ h, range, onDelete }: { h: HabitFull; range: DateRange; onDelete: (id: string) => void }) {
   const [confirm, setConfirm] = useState(false);
   const [pending, start] = useTransition();
 
+  const heatmapDays = range === null ? Math.max(84, h.logs.length) : range;
   const logMap = new Map(h.logs.map(l => [l.date, l.done]));
   const getValue = (date: Date, _idx: number): number => {
     const ds = date.toISOString().slice(0, 10);
@@ -29,8 +31,8 @@ function HabitDetail({ h, onDelete }: { h: HabitFull; onDelete: (id: string) => 
       display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 24, alignItems: 'center',
     }}>
       <div>
-        <div className="label-eyebrow" style={{ marginBottom: 6 }}>ostatnie 84 dni</div>
-        <Heatmap days={84} getValue={getValue} cell={9} gap={2} />
+        <div className="label-eyebrow" style={{ marginBottom: 6 }}>ostatnie {heatmapDays} dni</div>
+        <Heatmap days={heatmapDays} getValue={getValue} cell={9} gap={2} />
       </div>
       <div style={{
         display: 'flex', flexDirection: 'column', gap: 8,
@@ -110,8 +112,8 @@ function HabitDetail({ h, onDelete }: { h: HabitFull; onDelete: (id: string) => 
 }
 
 /* ─── HabitListRow ─────────────────────────────────────────────────────────── */
-function HabitListRow({ h, isOpen, onToggle, onDelete, onTodayToggle }: {
-  h: HabitFull; isOpen: boolean; onToggle: () => void; onDelete: (id: string) => void;
+function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle }: {
+  h: HabitFull; isOpen: boolean; range: DateRange; onToggle: () => void; onDelete: (id: string) => void;
   onTodayToggle: (id: string, done: boolean) => void;
 }) {
   const [hover, setHover] = useState(false);
@@ -185,7 +187,7 @@ function HabitListRow({ h, isOpen, onToggle, onDelete, onTodayToggle }: {
       >
         <Icon name="check" size={13} />
       </button>
-      {isOpen && <HabitDetail h={h} onDelete={onDelete} />}
+      {isOpen && <HabitDetail h={h} range={range} onDelete={onDelete} />}
     </div>
   );
 }
@@ -196,6 +198,17 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
   const [open, setOpen] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [range, setRange] = useState<DateRange>(90);
+  const [loadingRange, startRange] = useTransition();
+
+  const handleRangeChange = (r: DateRange) => {
+    setRange(r);
+    setOpen(null);
+    startRange(async () => {
+      const data = await getHabitsRange(r);
+      setHabits(data);
+    });
+  };
 
   const filtered = filter === 'all' ? habits : habits.filter(h => h.type === filter);
 
@@ -224,7 +237,9 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
               {habits.length} aktywnych
             </div>
           </div>
-          <div className="lo-habits-filters" style={{ display: 'flex', gap: 6 }}>
+          <div className="lo-habits-filters" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <RangePicker value={range} onChange={handleRangeChange} loading={loadingRange} />
+            <div style={{ width: 1, height: 20, background: 'var(--lo-border)', margin: '0 2px' }} />
             {([['all','Wszystkie'],['daily','Codzienne'],['weekly','Tygodniowe'],['custom','Niestandardowe']] as [FilterType, string][]).map(([k, l]) => (
               <button key={k} onClick={() => setFilter(k)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -270,6 +285,7 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
             <HabitListRow
               key={h.id} h={h}
               isOpen={open === h.id}
+              range={range}
               onToggle={() => setOpen(open === h.id ? null : h.id)}
               onDelete={handleDelete}
               onTodayToggle={handleTodayToggle}

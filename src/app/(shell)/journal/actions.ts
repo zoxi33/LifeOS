@@ -9,8 +9,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
   const { data } = await sb
     .from('journal_entries')
     .select('*')
-    .order('date', { ascending: false })
-    .limit(50);
+    .order('date', { ascending: false });
 
   return (data ?? []).map(e => ({
     id:     e.id,

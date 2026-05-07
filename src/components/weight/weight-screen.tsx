@@ -7,11 +7,15 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { LogWeightDialog } from './log-weight-dialog';
 import type { WeightEntry } from '@/types/lifeos';
 
-const PERIODS = ['7d', '30d', '90d', 'rok'] as const;
+const PERIODS = ['7d', '30d', '90d', 'rok', 'wszystko'] as const;
 type Period = typeof PERIODS[number];
 
 function periodDays(p: Period): number {
-  return p === '7d' ? 7 : p === '30d' ? 30 : p === '90d' ? 90 : 365;
+  if (p === '7d') return 7;
+  if (p === '30d') return 30;
+  if (p === '90d') return 90;
+  if (p === 'rok') return 365;
+  return Infinity;
 }
 
 export function WeightScreen({

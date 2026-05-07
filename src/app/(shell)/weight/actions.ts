@@ -12,8 +12,7 @@ export async function getWeightLogs(): Promise<{
   const { data } = await sb
     .from('weight_logs')
     .select('*')
-    .order('measured_at', { ascending: false })
-    .limit(365);
+    .order('measured_at', { ascending: false });
 
   const entries: WeightEntry[] = (data ?? []).slice(0, 10).map((e, i, arr) => {
     const prev = arr[i + 1];

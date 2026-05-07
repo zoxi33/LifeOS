@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Bar } from '@/components/primitives/bar';
 import { SectionHeader } from '@/components/primitives/section-header';
 import { Icon } from '@/components/primitives/icon';
-import { logSleep, updateSleepLog, deleteSleepLog } from '@/app/(shell)/sleep/actions';
+import { RangePicker, type DateRange } from '@/components/primitives/range-picker';
+import { logSleep, updateSleepLog, deleteSleepLog, getSleepRange } from '@/app/(shell)/sleep/actions';
 import type { SleepDay } from '@/types/lifeos';
 
 const TARGET_HOURS = 7;
@@ -167,6 +168,16 @@ export function SleepScreen({ initialDays = [] }: { initialDays?: SleepDay[] }) 
   const [logOpen, setLogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<SleepDay | null>(null);
   const [days, setDays] = useState<SleepDay[]>(initialDays);
+  const [range, setRange] = useState<DateRange>(30);
+  const [loading, startRange] = useTransition();
+
+  const handleRangeChange = (r: DateRange) => {
+    setRange(r);
+    startRange(async () => {
+      const data = await getSleepRange(r);
+      setDays(data);
+    });
+  };
 
   const handleDeleted = (id: string) => {
     setDays(prev => prev.filter(d => d.id !== id));
@@ -209,14 +220,16 @@ export function SleepScreen({ initialDays = [] }: { initialDays?: SleepDay[] }) 
         display: 'flex', flexDirection: 'column', gap: 16,
         maxWidth: 1280, margin: '0 auto', width: '100%',
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div className="label-eyebrow">Sen</div>
             <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em', marginTop: 4 }}>
-              Ostatnie 30 dni
+              {days.length} {days.length === 1 ? 'noc' : 'nocy'}
             </div>
           </div>
-          <button onClick={() => setLogOpen(true)} style={{
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <RangePicker value={range} onChange={handleRangeChange} loading={loading} />
+            <button onClick={() => setLogOpen(true)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             height: 34, padding: '0 14px',
             background: 'var(--lo-accent-soft)', color: 'var(--lo-accent)',
@@ -225,6 +238,7 @@ export function SleepScreen({ initialDays = [] }: { initialDays?: SleepDay[] }) 
           }}>
             <Icon name="plus" size={13} /> Zaloguj sen
           </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -309,7 +323,7 @@ export function SleepScreen({ initialDays = [] }: { initialDays?: SleepDay[] }) 
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: 'var(--font-geist-mono)' }}>
-                <span style={{ fontSize: 10, color: 'var(--lo-text-dim)' }}>30 dni temu</span>
+                <span style={{ fontSize: 10, color: 'var(--lo-text-dim)' }}>{days[0] ? new Date(days[0].dateStr).toLocaleDateString('pl', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</span>
                 <span style={{ fontSize: 10, color: 'var(--lo-text-dim)' }}>cel: {TARGET_HOURS} h ▬</span>
                 <span style={{ fontSize: 10, color: 'var(--lo-text-dim)' }}>dziś</span>
               </div>

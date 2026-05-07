@@ -49,8 +49,12 @@ export async function getHabitsForToday(): Promise<TodayHabit[]> {
 }
 
 export async function getHabitsList(): Promise<HabitFull[]> {
+  return getHabitsRange(90);
+}
+
+export async function getHabitsRange(days: number | null): Promise<HabitFull[]> {
   const sb = await createClient();
-  const since = daysAgo(90);
+  const since = days ? daysAgo(days) : null;
   const ws = weekStart();
   const t = today();
 
@@ -64,29 +68,25 @@ export async function getHabitsList(): Promise<HabitFull[]> {
 
   const ids = habits.map(h => h.id);
 
-  const { data: logs90 } = await sb
+  let logsQuery = sb
     .from('habit_logs')
     .select('habit_id, date, done')
-    .in('habit_id', ids)
-    .gte('date', since);
+    .in('habit_id', ids);
+  if (since) logsQuery = logsQuery.gte('date', since) as typeof logsQuery;
 
-  const { data: weekLogs } = await sb
-    .from('habit_logs')
-    .select('habit_id, date, done')
-    .in('habit_id', ids)
-    .gte('date', ws)
-    .lte('date', t);
+  const [{ data: allLogs }, { data: weekLogs }] = await Promise.all([
+    logsQuery,
+    sb.from('habit_logs').select('habit_id, date, done').in('habit_id', ids).gte('date', ws).lte('date', t),
+  ]);
 
   return habits.map(h => {
-    const all = (logs90 ?? []).filter(l => l.habit_id === h.id);
+    const all = (allLogs ?? []).filter(l => l.habit_id === h.id);
     const wk  = (weekLogs ?? []).filter(l => l.habit_id === h.id);
     const done = all.filter(l => l.done).length;
-    // days since habit was created, capped at 90
-    const createdAt = h.created_at ? new Date(h.created_at) : new Date(since);
-    const daysSinceCreated = Math.min(90, Math.max(1,
-      Math.round((Date.now() - createdAt.getTime()) / 86400000)
-    ));
-    const completionRate = done / daysSinceCreated;
+    const createdAt = h.created_at ? new Date(h.created_at) : new Date();
+    const daysSinceCreated = Math.max(1, Math.round((Date.now() - createdAt.getTime()) / 86400000));
+    const activeDays = days ? Math.min(days, daysSinceCreated) : daysSinceCreated;
+    const completionRate = done / activeDays;
     const weekDone = wk.filter(l => l.done).length;
     const streak = computeStreak(all, h.type, h.target);
     const todayDone = wk.find(l => l.date === t)?.done ?? false;

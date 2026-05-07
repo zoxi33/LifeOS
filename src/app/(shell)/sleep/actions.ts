@@ -6,13 +6,18 @@ import { today } from '@/lib/supabase/queries';
 import type { SleepDay } from '@/types/lifeos';
 
 export async function getSleepLogs(): Promise<SleepDay[]> {
-  const sb = await createClient();
-  const { data } = await sb
-    .from('sleep_logs')
-    .select('*')
-    .order('date', { ascending: false })
-    .limit(30);
+  return getSleepRange(30);
+}
 
+export async function getSleepRange(days: number | null): Promise<SleepDay[]> {
+  const sb = await createClient();
+  let q = sb.from('sleep_logs').select('*').order('date', { ascending: false });
+  if (days !== null) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    q = q.gte('date', since.toISOString().slice(0, 10)) as typeof q;
+  }
+  const { data } = await q;
   return (data ?? []).reverse().map((e, i) => ({
     id:      e.id,
     date:    i,

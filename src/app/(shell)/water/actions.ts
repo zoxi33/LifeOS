@@ -18,6 +18,18 @@ async function getDefaultTargetMl(sb: Awaited<ReturnType<typeof createClient>>):
   return (data?.value as number) ?? 3000;
 }
 
+export async function getWaterHistory(days: number | null): Promise<{ date: string; ml: number; target_ml: number }[]> {
+  const sb = await createClient();
+  let q = sb.from('water_logs').select('date, ml, target_ml').order('date', { ascending: false });
+  if (days !== null) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    q = q.gte('date', since.toISOString().slice(0, 10)) as typeof q;
+  }
+  const { data } = await q;
+  return data ?? [];
+}
+
 export async function getWaterToday(): Promise<WaterLog> {
   const sb = await createClient();
   const date = new Date().toISOString().slice(0, 10);
