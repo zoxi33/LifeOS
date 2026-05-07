@@ -62,7 +62,7 @@ export function ShellClient({ children, xp }: { children: React.ReactNode; xp: S
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        <TopBar onCmd={() => setCmd(true)} onTweaks={() => setTweaksOpen(v => !v)} />
+        <TopBar onCmd={() => setCmd(true)} onTweaks={() => setTweaksOpen(v => !v)} xp={xp} />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>

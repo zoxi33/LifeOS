@@ -218,8 +218,17 @@ input[type="range"] {
   /* Hide elements only on mobile */
   .lo-hide-mobile { display: none !important; }
 
+  /* Show elements only on mobile */
+  .lo-mobile-only { display: flex !important; }
+
+  /* Hide desktop-only elements on mobile */
+  .lo-desktop-only { display: none !important; }
+
   /* Hide search button on mobile TopBar */
   .lo-topbar-search { display: none !important; }
+
+  /* Mobile XP bar in TopBar */
+  .lo-topbar-xp { display: flex !important; }
 
   /* Habits table: collapse to name-only on mobile */
   .lo-habits-row {

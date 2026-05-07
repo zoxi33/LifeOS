@@ -89,49 +89,87 @@ function SidebarItem({ item, primary = false }: { item: NavItem; primary?: boole
 function UserFooter({ xp }: { xp: SidebarXP }) {
   const [pending, start] = useTransition();
   const [hover, setHover] = useState(false);
+  const pct = Math.min(100, Math.round((xp.xpInLevel / xp.xpNeeded) * 100));
 
   return (
     <div
       style={{
         marginTop: 'auto',
-        padding: '12px 8px 4px',
+        padding: '14px 10px 12px',
         borderTop: '1px solid var(--lo-border)',
-        display: 'flex', alignItems: 'center', gap: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
       }}
     >
-      <div
-        style={{
-          width: 26, height: 26, borderRadius: 999,
-          background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)',
-          display: 'grid', placeItems: 'center',
-          fontSize: 11, color: 'var(--lo-text-muted)', fontWeight: 500,
-        }}
-      >M</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, lineHeight: 1.2 }}>
-        <span style={{ fontSize: 12 }}>Michał</span>
-        <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 10, color: 'var(--lo-text-dim)' }}>
-          Level {xp.level} · {xp.totalXP.toLocaleString()} XP
-        </span>
+      {/* User row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            width: 30, height: 30, borderRadius: 999, flexShrink: 0,
+            background: 'var(--lo-accent-soft)',
+            border: '1px solid var(--lo-accent-line)',
+            display: 'grid', placeItems: 'center',
+            fontSize: 12, color: 'var(--lo-accent)', fontWeight: 600,
+          }}
+        >M</div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--lo-text)' }}>Michał</span>
+          <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 10, color: 'var(--lo-text-dim)' }}>
+            Lvl {xp.level} · {xp.totalXP.toLocaleString()} XP
+          </span>
+        </div>
+
+        <button
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          disabled={pending}
+          onClick={() => start(() => signOut())}
+          title="Wyloguj"
+          style={{
+            marginLeft: 'auto',
+            width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+            background: hover ? 'var(--lo-surface-2)' : 'transparent',
+            border: '1px solid ' + (hover ? 'var(--lo-border)' : 'transparent'),
+            color: hover ? 'var(--lo-text-muted)' : 'var(--lo-text-dim)',
+            display: 'grid', placeItems: 'center',
+            transition: 'background .1s, color .1s',
+            cursor: 'pointer',
+          }}
+        >
+          <Icon name="logout" size={14} />
+        </button>
       </div>
-      <button
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        disabled={pending}
-        onClick={() => start(() => signOut())}
-        title="Wyloguj"
-        style={{
-          marginLeft: 'auto',
-          width: 28, height: 28, borderRadius: 6,
-          background: hover ? 'var(--lo-surface-2)' : 'transparent',
-          border: '1px solid ' + (hover ? 'var(--lo-border)' : 'transparent'),
-          color: hover ? 'var(--lo-text-muted)' : 'var(--lo-text-dim)',
-          display: 'grid', placeItems: 'center',
-          transition: 'background .1s, color .1s',
-          cursor: 'pointer',
-        }}
-      >
-        <Icon name="logout" size={14} />
-      </button>
+
+      {/* XP progress bar */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 9, color: 'var(--lo-text-dim)', letterSpacing: '.04em', textTransform: 'uppercase' }}>
+            Do poziomu {xp.level + 1}
+          </span>
+          <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 9, color: 'var(--lo-text-dim)' }}>
+            {xp.xpInLevel}/{xp.xpNeeded}
+          </span>
+        </div>
+        <div
+          style={{
+            height: 4, borderRadius: 99,
+            background: 'var(--lo-surface-2)',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              height: '100%',
+              width: `${pct}%`,
+              borderRadius: 99,
+              background: 'var(--lo-accent)',
+              transition: 'width .4s ease',
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }

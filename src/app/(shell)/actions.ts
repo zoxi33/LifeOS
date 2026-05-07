@@ -13,6 +13,8 @@ export async function signOut() {
 export interface SidebarXP {
   level: number;
   totalXP: number;
+  xpInLevel: number;
+  xpNeeded: number;
 }
 
 export async function getSidebarXP(): Promise<SidebarXP> {
@@ -26,5 +28,8 @@ export async function getSidebarXP(): Promise<SidebarXP> {
     return s + Math.floor((r.focus_minutes ?? 0) / 30) * 8 + Math.floor((r.work_minutes ?? 0) / 60) * 5;
   }, 0);
   const totalXP = habitXP + logXP;
-  return { level: levelFromXP(totalXP), totalXP };
+  const level = levelFromXP(totalXP);
+  const xpInLevel = totalXP - xpForLevel(level);
+  const xpNeeded = xpForLevel(level + 1) - xpForLevel(level);
+  return { level, totalXP, xpInLevel, xpNeeded };
 }
