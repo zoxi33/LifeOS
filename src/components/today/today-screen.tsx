@@ -112,7 +112,7 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
                     background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)',
                     borderRadius: 999, fontSize: 11, color: 'var(--lo-text-muted)',
                     fontFamily: 'var(--font-geist-mono)',
-                  }}>tydz. {getWeekNumber()}</span>
+                  }}>{new Date().toLocaleDateString('pl', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                   <div style={{
@@ -270,12 +270,4 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
       </div>
     </>
   );
-}
-
-function getWeekNumber() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-  const yearStart = new Date(d.getFullYear(), 0, 1);
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }

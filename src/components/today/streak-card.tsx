@@ -7,11 +7,12 @@ interface StreakCardProps {
   days: number;
   label: string;
   since: string;
+  best?: number;
   prominence?: TweakStreakProminence;
   onReset?: () => void;
 }
 
-export function StreakCard({ days, label, since, prominence = 'medium', onReset }: StreakCardProps) {
+export function StreakCard({ days, label, since, best, prominence = 'medium', onReset }: StreakCardProps) {
   const big = prominence === 'high';
   return (
     <div
@@ -46,13 +47,15 @@ export function StreakCard({ days, label, since, prominence = 'medium', onReset 
           lineHeight: 1,
         }}>{days}</div>
         <div style={{ color: 'var(--lo-text-muted)', fontSize: 13 }}>dni</div>
-        <div style={{
-          marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
-          color: 'var(--lo-text-faint)', fontSize: 11,
-          fontFamily: 'var(--font-geist-mono)',
-        }}>
-          <Icon name="arrow-up" size={11} /> rekord 78
-        </div>
+        {best !== undefined && best > 0 && (
+          <div style={{
+            marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
+            color: 'var(--lo-text-faint)', fontSize: 11,
+            fontFamily: 'var(--font-geist-mono)',
+          }}>
+            <Icon name="arrow-up" size={11} /> rekord {best}
+          </div>
+        )}
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>od {since}</div>

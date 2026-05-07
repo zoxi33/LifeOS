@@ -48,10 +48,14 @@ export async function addWaterMl(amount: number, currentMl: number, targetMl: nu
   const sb = await createClient();
   const date = new Date().toISOString().slice(0, 10);
   const next = Math.max(0, currentMl + amount);
-  await sb.from('water_logs').upsert(
+  const { error } = await sb.from('water_logs').upsert(
     { date, ml: next, target_ml: targetMl },
     { onConflict: 'date' }
   );
+  if (error) {
+    console.error('[water] addWaterMl error:', error);
+    throw new Error(error.message);
+  }
   revalidatePath('/today');
   revalidatePath('/daily');
   revalidatePath('/water');
@@ -60,10 +64,14 @@ export async function addWaterMl(amount: number, currentMl: number, targetMl: nu
 export async function setWaterMl(ml: number, targetMl: number) {
   const sb = await createClient();
   const date = new Date().toISOString().slice(0, 10);
-  await sb.from('water_logs').upsert(
+  const { error } = await sb.from('water_logs').upsert(
     { date, ml: Math.max(0, ml), target_ml: targetMl },
     { onConflict: 'date' }
   );
+  if (error) {
+    console.error('[water] setWaterMl error:', error);
+    throw new Error(error.message);
+  }
   revalidatePath('/today');
   revalidatePath('/daily');
   revalidatePath('/water');
