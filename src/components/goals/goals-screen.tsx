@@ -58,7 +58,9 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
     deleteMilestone(id);
   };
 
-  const pct = Math.min(100, Math.round((parseFloat(inputVal) / (g.target || 1)) * 100));
+  const isText = g.goalType === 'text';
+  const done = isText && g.current >= 1;
+  const pct = isText ? (done ? 100 : 0) : Math.min(100, Math.round((parseFloat(inputVal) / (g.target || 1)) * 100));
 
   return (
     <div style={{
@@ -80,18 +82,22 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
             {g.name}
           </div>
           <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)', marginTop: 6 }}>
-            termin · {g.due}
+            termin · {g.due || '—'}
           </div>
         </div>
         <div style={{ position: 'relative', width: 88, height: 88, flexShrink: 0 }}>
           <HabitRing value={pct} total={100} size={88} stroke={5} />
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-            <div style={{
-              fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
-              fontSize: 22, fontWeight: 500,
-            }}>
-              {pct}<span style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>%</span>
-            </div>
+            {isText ? (
+              <Icon name={done ? 'check' : 'clock'} size={22} style={{ color: done ? 'var(--lo-accent)' : 'var(--lo-text-faint)' }} />
+            ) : (
+              <div style={{
+                fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+                fontSize: 22, fontWeight: 500,
+              }}>
+                {pct}<span style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>%</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -103,58 +109,105 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
         borderBottom: '1px solid var(--lo-border)',
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
-          <div>
-            <div className="label-eyebrow" style={{ marginBottom: 4 }}>Obecnie</div>
-            <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 18, color: 'var(--lo-accent)' }}>
-              {parseFloat(inputVal) || g.current} <span style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>{g.unit}</span>
+        {isText ? (
+          /* Text goal: show state arrow + done toggle */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                flex: 1, padding: '10px 14px',
+                background: 'var(--lo-surface-2)', borderRadius: 8,
+                border: '1px solid var(--lo-border)',
+              }}>
+                <div className="label-eyebrow" style={{ marginBottom: 4 }}>Obecnie</div>
+                <div style={{ fontSize: 15, color: 'var(--lo-text-muted)' }}>{g.currentText || '—'}</div>
+              </div>
+              <Icon name="arrow-right" size={16} style={{ color: 'var(--lo-text-faint)', flexShrink: 0 }} />
+              <div style={{
+                flex: 1, padding: '10px 14px',
+                background: done ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)', borderRadius: 8,
+                border: '1px solid ' + (done ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
+              }}>
+                <div className="label-eyebrow" style={{ marginBottom: 4, color: done ? 'var(--lo-accent)' : undefined }}>Cel</div>
+                <div style={{ fontSize: 15, color: done ? 'var(--lo-accent)' : 'var(--lo-text)' }}>{g.targetText || '—'}</div>
+              </div>
+            </div>
+            {g.note && (
+              <div style={{ fontSize: 12, color: 'var(--lo-text-muted)' }}>{g.note}</div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="label-eyebrow" style={{ flexShrink: 0 }}>Status</div>
+              <button
+                disabled={saving}
+                onClick={() => startSave(async () => { await updateGoalProgress(g.id, done ? 0 : 1); onProgressSaved(g.id, done ? 0 : 1); })}
+                style={{
+                  height: 32, padding: '0 14px',
+                  background: done ? 'var(--lo-surface-2)' : 'var(--lo-accent-soft)',
+                  color: done ? 'var(--lo-text-muted)' : 'var(--lo-accent)',
+                  border: '1px solid ' + (done ? 'var(--lo-border)' : 'var(--lo-accent-line)'),
+                  borderRadius: 8, fontSize: 13, fontFamily: 'inherit',
+                  opacity: saving ? 0.5 : 1,
+                }}
+              >
+                {saving ? '…' : done ? 'Oznacz jako w toku' : 'Oznacz jako osiągnięty'}
+              </button>
             </div>
           </div>
-          <div>
-            <div className="label-eyebrow" style={{ marginBottom: 4 }}>Cel</div>
-            <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 18 }}>
-              {g.target.toLocaleString('pl')} <span style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>{g.unit}</span>
+        ) : (
+          /* Numeric goal: existing stats + input */
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+              <div>
+                <div className="label-eyebrow" style={{ marginBottom: 4 }}>Obecnie</div>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 18, color: 'var(--lo-accent)' }}>
+                  {parseFloat(inputVal) || g.current} <span style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>{g.unit}</span>
+                </div>
+              </div>
+              <div>
+                <div className="label-eyebrow" style={{ marginBottom: 4 }}>Cel</div>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 18 }}>
+                  {g.target.toLocaleString('pl')} <span style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>{g.unit}</span>
+                </div>
+              </div>
+              <div>
+                <div className="label-eyebrow" style={{ marginBottom: 4 }}>Notatka</div>
+                <div style={{ fontSize: 12, color: 'var(--lo-text-muted)', lineHeight: 1.5 }}>{g.note || '—'}</div>
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="label-eyebrow" style={{ marginBottom: 4 }}>Notatka</div>
-            <div style={{ fontSize: 12, color: 'var(--lo-text-muted)', lineHeight: 1.5 }}>{g.note || '—'}</div>
-          </div>
-        </div>
 
-        {/* Inline progress update */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="label-eyebrow" style={{ flexShrink: 0 }}>Aktualizuj postęp</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-            <input
-              type="number"
-              value={inputVal}
-              onChange={e => setInputVal(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleProgressSave()}
-              style={{
-                width: 100, height: 32, padding: '0 10px',
-                background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)',
-                borderRadius: 8, color: 'var(--lo-text)',
-                fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
-                fontSize: 14,
-              }}
-            />
-            <span style={{ fontSize: 12, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>{g.unit}</span>
-            <button
-              disabled={saving || inputVal === String(g.current)}
-              onClick={handleProgressSave}
-              style={{
-                height: 32, padding: '0 14px',
-                background: 'var(--lo-accent-soft)', color: 'var(--lo-accent)',
-                border: '1px solid var(--lo-accent-line)', borderRadius: 8,
-                fontSize: 13, fontFamily: 'inherit',
-                opacity: (saving || inputVal === String(g.current)) ? 0.5 : 1,
-              }}
-            >
-              {saving ? 'Zapisywanie…' : 'Zapisz'}
-            </button>
-          </div>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="label-eyebrow" style={{ flexShrink: 0 }}>Aktualizuj postęp</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                <input
+                  type="number"
+                  value={inputVal}
+                  onChange={e => setInputVal(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleProgressSave()}
+                  style={{
+                    width: 100, height: 32, padding: '0 10px',
+                    background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)',
+                    borderRadius: 8, color: 'var(--lo-text)',
+                    fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+                    fontSize: 14,
+                  }}
+                />
+                <span style={{ fontSize: 12, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>{g.unit}</span>
+                <button
+                  disabled={saving || inputVal === String(g.current)}
+                  onClick={handleProgressSave}
+                  style={{
+                    height: 32, padding: '0 14px',
+                    background: 'var(--lo-accent-soft)', color: 'var(--lo-accent)',
+                    border: '1px solid var(--lo-accent-line)', borderRadius: 8,
+                    fontSize: 13, fontFamily: 'inherit',
+                    opacity: (saving || inputVal === String(g.current)) ? 0.5 : 1,
+                  }}
+                >
+                  {saving ? 'Zapisywanie…' : 'Zapisz'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Milestones */}
@@ -314,7 +367,9 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
   const handleProgressSaved = (id: string, newCurrent: number) => {
     setGoals(prev => prev.map(g => {
       if (g.id !== id) return g;
-      const pct = Math.min(100, Math.round((newCurrent / (g.target || 1)) * 100));
+      const pct = g.goalType === 'text'
+        ? (newCurrent >= 1 ? 100 : 0)
+        : Math.min(100, Math.round((newCurrent / (g.target || 1)) * 100));
       return { ...g, current: newCurrent, pct };
     }));
   };
@@ -402,13 +457,27 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
                     fontFamily: 'var(--font-geist-mono)', fontSize: 10,
                     color: 'var(--lo-text-faint)', letterSpacing: '.06em', textTransform: 'uppercase',
                   }}>{x.category}</span>
-                  <span style={{
-                    fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
-                    fontSize: 11, color: 'var(--lo-text-muted)',
-                  }}>{x.pct}%</span>
+                  {x.goalType === 'text' ? (
+                    <span style={{
+                      fontFamily: 'var(--font-geist-mono)', fontSize: 10,
+                      color: x.current >= 1 ? 'var(--lo-accent)' : 'var(--lo-text-muted)',
+                      letterSpacing: '.04em',
+                    }}>{x.current >= 1 ? 'osiągnięty' : 'w toku'}</span>
+                  ) : (
+                    <span style={{
+                      fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+                      fontSize: 11, color: 'var(--lo-text-muted)',
+                    }}>{x.pct}%</span>
+                  )}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 450 }}>{x.name}</div>
-                <Bar value={x.pct} h={3} />
+                {x.goalType === 'text' ? (
+                  <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>
+                    {x.currentText || '—'} → {x.targetText || '—'}
+                  </div>
+                ) : (
+                  <Bar value={x.pct} h={3} />
+                )}
               </button>
             ))}
           </div>

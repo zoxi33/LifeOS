@@ -50,10 +50,13 @@ export interface Goal {
   id: string;
   name: string;
   category: string;
+  goalType: 'numeric' | 'text';
   pct: number;
   current: number;
   target: number;
   unit: string;
+  currentText: string;
+  targetText: string;
   start?: number;
   due: string;
   startDate: string;

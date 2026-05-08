@@ -68,6 +68,7 @@ export const journalEntries: JournalEntry[] = [
 export const goalsData: Goal[] = [
   {
     id: 'weight', name: '79 kg do końca lipca', category: 'Zdrowie',
+    goalType: 'numeric', currentText: '', targetText: '',
     pct: 62, current: 80.1, target: 79.0, unit: 'kg', start: 82.4,
     due: '31 lip 2026', startDate: '01 sty 2026',
     milestones: [
@@ -79,6 +80,7 @@ export const goalsData: Goal[] = [
   },
   {
     id: 'books', name: 'Przeczytać 24 książki', category: 'Rozwój',
+    goalType: 'numeric', currentText: '', targetText: '',
     pct: 41, current: 10, target: 24, unit: 'książek',
     due: '31 gru 2026', startDate: '01 sty 2026',
     milestones: [
@@ -91,6 +93,7 @@ export const goalsData: Goal[] = [
   },
   {
     id: 'savings', name: 'Wpłaty: 50 000 zł', category: 'Finanse',
+    goalType: 'numeric', currentText: '', targetText: '',
     pct: 78, current: 38900, target: 50000, unit: 'zł',
     due: '31 gru 2026', startDate: '01 sty 2026',
     milestones: [

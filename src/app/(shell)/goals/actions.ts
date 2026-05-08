@@ -4,6 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import type { Goal } from '@/types/lifeos';
 
+type RawGoal = {
+  id: string; name: string; category: string | null;
+  goal_type: string | null; current: number | null; target: number | null;
+  unit: string | null; current_text: string | null; target_text: string | null;
+  due_date: string | null; start_date: string | null; note: string | null;
+  goal_milestones?: { id: string; name: string; done: boolean; due_label: string | null }[];
+};
+
 export async function getGoals(): Promise<Goal[]> {
   const sb = await createClient();
   const { data: goals } = await sb
@@ -12,22 +20,26 @@ export async function getGoals(): Promise<Goal[]> {
     .eq('active', true)
     .order('id');
 
-  return (goals ?? []).map(g => {
+  return ((goals ?? []) as unknown as RawGoal[]).map(g => {
+    const goalType = (g.goal_type === 'text' ? 'text' : 'numeric') as 'numeric' | 'text';
     const current = g.current ?? 0;
-    const target  = g.target  ?? 1;
+    const target  = goalType === 'text' ? 1 : (g.target ?? 1);
     const pct = Math.min(100, Math.round((current / target) * 100));
     return {
-      id:         g.id,
-      name:       g.name,
-      category:   g.category ?? '',
+      id:          g.id,
+      name:        g.name,
+      category:    g.category ?? '',
+      goalType,
       pct,
       current,
       target,
-      unit:       g.unit ?? '',
-      due:        g.due_date ?? '',
-      startDate:  g.start_date ?? '',
-      note:       g.note ?? '',
-      milestones: ((g as { goal_milestones?: { id: string; name: string; done: boolean; due_label: string | null }[] }).goal_milestones ?? []).map(m => ({
+      unit:        g.unit ?? '',
+      currentText: g.current_text ?? '',
+      targetText:  g.target_text ?? '',
+      due:         g.due_date ?? '',
+      startDate:   g.start_date ?? '',
+      note:        g.note ?? '',
+      milestones: (g.goal_milestones ?? []).map(m => ({
         id:   m.id,
         name: m.name,
         done: m.done,
@@ -38,35 +50,47 @@ export async function getGoals(): Promise<Goal[]> {
 }
 
 export async function createGoal(data: {
-  name: string; category: string; current: number;
-  target: number; unit: string; due_date: string; note: string;
+  name: string; category: string; goalType: 'numeric' | 'text';
+  current: number; target: number; unit: string;
+  currentText: string; targetText: string;
+  due_date: string; note: string;
 }): Promise<Goal> {
   const sb = await createClient();
+  const isText = data.goalType === 'text';
   const payload = {
     name: data.name,
     category: data.category,
-    current: data.current,
-    target: data.target,
-    unit: data.unit || null,
+    goal_type: data.goalType,
+    current: isText ? 0 : data.current,
+    target: isText ? 1 : data.target,
+    unit: isText ? null : (data.unit || null),
+    current_text: isText ? (data.currentText || null) : null,
+    target_text: isText ? (data.targetText || null) : null,
     due_date: data.due_date || null,
     note: data.note || null,
   };
-  const { data: row, error } = await sb.from('goals').insert(payload).select().single();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: row, error } = await sb.from('goals').insert(payload as any).select().single();
   if (error || !row) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/goals');
-  const current = row.current ?? 0;
-  const target = row.target ?? 1;
+  const r = row as unknown as RawGoal;
+  const goalType = (r.goal_type === 'text' ? 'text' : 'numeric') as 'numeric' | 'text';
+  const current = r.current ?? 0;
+  const target = goalType === 'text' ? 1 : (r.target ?? 1);
   return {
-    id: row.id,
-    name: row.name,
-    category: row.category ?? '',
+    id: r.id,
+    name: r.name,
+    category: r.category ?? '',
+    goalType,
     pct: Math.min(100, Math.round((current / target) * 100)),
     current,
     target,
-    unit: row.unit ?? '',
-    due: row.due_date ?? '',
-    startDate: row.start_date ?? '',
-    note: row.note ?? '',
+    unit: r.unit ?? '',
+    currentText: r.current_text ?? '',
+    targetText: r.target_text ?? '',
+    due: r.due_date ?? '',
+    startDate: r.start_date ?? '',
+    note: r.note ?? '',
     milestones: [],
   };
 }
