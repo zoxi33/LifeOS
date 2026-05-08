@@ -70,13 +70,13 @@ export async function getHabitsRange(days: number | null): Promise<HabitFull[]> 
 
   let logsQuery = sb
     .from('habit_logs')
-    .select('habit_id, date, done')
+    .select('habit_id, date, done, value_numeric')
     .in('habit_id', ids);
   if (since) logsQuery = logsQuery.gte('date', since) as typeof logsQuery;
 
   const [{ data: allLogs }, { data: weekLogs }] = await Promise.all([
     logsQuery,
-    sb.from('habit_logs').select('habit_id, date, done').in('habit_id', ids).gte('date', ws).lte('date', t),
+    sb.from('habit_logs').select('habit_id, date, done, value_numeric').in('habit_id', ids).gte('date', ws).lte('date', t),
   ]);
 
   return habits.map(h => {
@@ -90,6 +90,7 @@ export async function getHabitsRange(days: number | null): Promise<HabitFull[]> 
     const weekDone = wk.filter(l => l.done).length;
     const streak = computeStreak(all, h.type, h.target);
     const todayDone = wk.find(l => l.date === t)?.done ?? false;
+    const todayLog = wk.find(l => l.date === t);
 
     return {
       id: h.id,
@@ -103,7 +104,9 @@ export async function getHabitsRange(days: number | null): Promise<HabitFull[]> 
       target: h.target,
       week: weekDone,
       todayDone,
-      logs: all.map(l => ({ date: l.date, done: l.done })),
+      unit: (h as Record<string, unknown>).unit as string ?? '',
+      todayValue: (todayLog as Record<string, unknown>)?.value_numeric as number | null ?? null,
+      logs: all.map(l => ({ date: l.date, done: l.done, value: (l as Record<string, unknown>).value_numeric as number | null })),
     };
   });
 }
@@ -117,8 +120,21 @@ export async function toggleHabitLog(habitId: string, date: string, done: boolea
   revalidatePath('/habits');
 }
 
+export async function logHabitValue(habitId: string, date: string, value: number | null) {
+  const sb = await createClient();
+  const { error } = await sb
+    .from('habit_logs')
+    .upsert(
+      { habit_id: habitId, date, done: true, value_numeric: value },
+      { onConflict: 'habit_id,date' }
+    );
+  if (error) throw new Error(error.message);
+  revalidatePath('/today');
+  revalidatePath('/habits');
+}
+
 export async function createHabit(data: {
-  name: string; emoji?: string; freq: string; type: string; target: number;
+  name: string; emoji?: string; freq: string; type: string; target: number; unit?: string;
 }): Promise<HabitFull> {
   const sb = await createClient();
   const { data: row, error } = await sb.from('habits').insert(data).select().single();
@@ -138,6 +154,8 @@ export async function createHabit(data: {
     target: row.target,
     week: 0,
     todayDone: false,
+    unit: data.unit ?? '',
+    todayValue: null,
     logs: [],
   };
 }

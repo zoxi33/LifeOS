@@ -21,7 +21,9 @@ export interface HabitFull {
   target: number;
   week: number;
   todayDone: boolean;
-  logs: { date: string; done: boolean }[];
+  unit: string;
+  todayValue: number | null;
+  logs: { date: string; done: boolean; value?: number | null }[];
 }
 
 // ── Dziennik ─────────────────────────────────────────────────────────────────

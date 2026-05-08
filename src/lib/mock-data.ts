@@ -21,14 +21,14 @@ export const todayHabits: TodayHabit[] = [
 
 // ── Nawyki — lista pełna ──────────────────────────────────────────────────────
 export const habitsList: HabitFull[] = [
-  { id: 'workout',  name: 'Trening siłowy',     freq: 'Pn · Śr · Pt · Sb', type: 'custom',  streak: 14,  best: 28,  completionRate: 0.86, target: 4, week: 3, emoji: '🏋️', todayDone: false, logs: [] },
-  { id: 'read',     name: 'Czytanie 30 min',    freq: 'codziennie',         type: 'daily',   streak: 47,  best: 89,  completionRate: 0.94, target: 7, week: 6, emoji: '📚', todayDone: true,  logs: [] },
-  { id: 'meditate', name: 'Medytacja 10 min',   freq: 'codziennie',         type: 'daily',   streak: 12,  best: 34,  completionRate: 0.71, target: 7, week: 5, emoji: '🧘', todayDone: false, logs: [] },
-  { id: 'cold',     name: 'Zimny prysznic',     freq: 'codziennie',         type: 'daily',   streak: 6,   best: 21,  completionRate: 0.62, target: 7, week: 6, emoji: '🚿', todayDone: true,  logs: [] },
-  { id: 'lang',     name: 'Hiszpański (Anki)',  freq: 'codziennie',         type: 'daily',   streak: 89,  best: 89,  completionRate: 0.98, target: 7, week: 7, emoji: '🌐', todayDone: true,  logs: [] },
-  { id: 'walk',     name: 'Spacer 8000 kroków', freq: '5×/tydzień',         type: 'weekly',  streak: 3,   best: 12,  completionRate: 0.75, target: 5, week: 4, emoji: '🚶', todayDone: false, logs: [] },
-  { id: 'creatine', name: 'Kreatyna',           freq: 'codziennie',         type: 'daily',   streak: 132, best: 132, completionRate: 0.99, target: 7, week: 7, emoji: '💊', todayDone: true,  logs: [] },
-  { id: 'noscroll', name: 'Bez social mediów',  freq: 'Pn—Pt',              type: 'custom',  streak: 9,   best: 21,  completionRate: 0.81, target: 5, week: 4, emoji: '📵', todayDone: false, logs: [] },
+  { id: 'workout',  name: 'Trening siłowy',     freq: 'Pn · Śr · Pt · Sb', type: 'custom',  streak: 14,  best: 28,  completionRate: 0.86, target: 4, week: 3, emoji: '🏋️', todayDone: false, unit: '',       todayValue: null, logs: [] },
+  { id: 'read',     name: 'Czytanie 30 min',    freq: 'codziennie',         type: 'daily',   streak: 47,  best: 89,  completionRate: 0.94, target: 7, week: 6, emoji: '📚', todayDone: true,  unit: 'str.',   todayValue: null, logs: [] },
+  { id: 'meditate', name: 'Medytacja 10 min',   freq: 'codziennie',         type: 'daily',   streak: 12,  best: 34,  completionRate: 0.71, target: 7, week: 5, emoji: '🧘', todayDone: false, unit: 'min',    todayValue: null, logs: [] },
+  { id: 'cold',     name: 'Zimny prysznic',     freq: 'codziennie',         type: 'daily',   streak: 6,   best: 21,  completionRate: 0.62, target: 7, week: 6, emoji: '🚿', todayDone: true,  unit: '',       todayValue: null, logs: [] },
+  { id: 'lang',     name: 'Hiszpański (Anki)',  freq: 'codziennie',         type: 'daily',   streak: 89,  best: 89,  completionRate: 0.98, target: 7, week: 7, emoji: '🌐', todayDone: true,  unit: 'min',    todayValue: null, logs: [] },
+  { id: 'walk',     name: 'Spacer 8000 kroków', freq: '5×/tydzień',         type: 'weekly',  streak: 3,   best: 12,  completionRate: 0.75, target: 5, week: 4, emoji: '🚶', todayDone: false, unit: 'kroków', todayValue: null, logs: [] },
+  { id: 'creatine', name: 'Kreatyna',           freq: 'codziennie',         type: 'daily',   streak: 132, best: 132, completionRate: 0.99, target: 7, week: 7, emoji: '💊', todayDone: true,  unit: '',       todayValue: null, logs: [] },
+  { id: 'noscroll', name: 'Bez social mediów',  freq: 'Pn—Pt',              type: 'custom',  streak: 9,   best: 21,  completionRate: 0.81, target: 5, week: 4, emoji: '📵', todayDone: false, unit: '',       todayValue: null, logs: [] },
 ];
 
 // ── Sparkline series ──────────────────────────────────────────────────────────

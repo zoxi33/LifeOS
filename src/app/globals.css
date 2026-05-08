@@ -258,6 +258,23 @@ input[type="range"] {
 
   /* lo-grid-3col 3rd item on mobile: span both columns so it's full-width */
   .lo-grid-3col > *:last-child:nth-child(3) { grid-column: 1 / -1; }
+
+  /* HabitDetail: stack heatmap / stats / delete vertically on mobile */
+  .lo-habit-detail {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .lo-habit-detail-stats {
+    padding-left: 0 !important;
+    border-left: none !important;
+    border-top: 1px solid var(--lo-border);
+    padding-top: 12px;
+  }
+  .lo-habit-detail-actions {
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    flex-direction: row !important;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────

@@ -6,15 +6,29 @@ import { Bar } from '@/components/primitives/bar';
 import { Heatmap } from '@/components/primitives/heatmap';
 import { RangePicker, type DateRange } from '@/components/primitives/range-picker';
 import { AddHabitDialog } from './add-habit-dialog';
-import { deleteHabit, toggleHabitLog, getHabitsRange } from '@/app/(shell)/habits/actions';
+import { deleteHabit, toggleHabitLog, getHabitsRange, logHabitValue } from '@/app/(shell)/habits/actions';
 import type { HabitFull } from '@/types/lifeos';
 
 type FilterType = 'all' | 'daily' | 'weekly' | 'custom';
 
 /* ─── HabitDetail ──────────────────────────────────────────────────────────── */
-function HabitDetail({ h, range, onDelete }: { h: HabitFull; range: DateRange; onDelete: (id: string) => void }) {
+function HabitDetail({ h, range, onDelete, onValueLogged }: {
+  h: HabitFull; range: DateRange;
+  onDelete: (id: string) => void;
+  onValueLogged?: (id: string, value: number | null) => void;
+}) {
   const [confirm, setConfirm] = useState(false);
   const [pending, start] = useTransition();
+  const [valueInput, setValueInput] = useState(h.todayValue !== null ? String(h.todayValue) : '');
+  const [valuePending, startValue] = useTransition();
+
+  const saveValue = () => {
+    const v = valueInput.trim() === '' ? null : parseFloat(valueInput);
+    if (v !== null && isNaN(v)) return;
+    const today = new Date().toISOString().slice(0, 10);
+    onValueLogged?.(h.id, v);
+    startValue(async () => { await logHabitValue(h.id, today, v); });
+  };
 
   const heatmapDays = range === null ? Math.max(84, h.logs.length) : range;
   const logMap = new Map(h.logs.map(l => [l.date, l.done]));
@@ -24,17 +38,17 @@ function HabitDetail({ h, range, onDelete }: { h: HabitFull; range: DateRange; o
   };
 
   return (
-    <div style={{
+    <div className="lo-habit-detail" style={{
       padding: '14px 16px',
       borderTop: '1px solid var(--lo-border)',
       background: 'var(--lo-bg-2)',
-      display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 24, alignItems: 'center',
+      display: 'grid', gridTemplateColumns: h.unit ? 'auto 1fr auto auto' : 'auto 1fr auto', gap: 24, alignItems: 'start',
     }}>
-      <div>
+      <div style={{ overflow: 'hidden' }}>
         <div className="label-eyebrow" style={{ marginBottom: 6 }}>ostatnie {heatmapDays} dni</div>
         <Heatmap days={heatmapDays} getValue={getValue} cell={9} gap={2} />
       </div>
-      <div style={{
+      <div className="lo-habit-detail-stats" style={{
         display: 'flex', flexDirection: 'column', gap: 8,
         paddingLeft: 16, borderLeft: '1px solid var(--lo-border)',
       }}>
@@ -57,7 +71,39 @@ function HabitDetail({ h, range, onDelete }: { h: HabitFull; range: DateRange; o
           ))}
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+      {h.unit && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>Dziś ({h.unit})</div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              placeholder="0"
+              value={valueInput}
+              onChange={e => setValueInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveValue()}
+              style={{
+                width: 80, height: 30, borderRadius: 6, padding: '0 8px',
+                background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)',
+                color: 'var(--lo-text)', fontSize: 13, fontFamily: 'var(--font-geist-mono)',
+              }}
+            />
+            <span style={{ fontSize: 12, color: 'var(--lo-text-muted)' }}>{h.unit}</span>
+            <button
+              onClick={saveValue}
+              disabled={valuePending}
+              style={{
+                height: 30, padding: '0 10px', borderRadius: 6,
+                background: 'var(--lo-accent-soft)', color: 'var(--lo-accent)',
+                border: '1px solid var(--lo-accent-line)', fontSize: 12,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >{valuePending ? '…' : 'Zapisz'}</button>
+          </div>
+        </div>
+      )}
+      <div className="lo-habit-detail-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
         {!confirm ? (
           <button
             onClick={() => setConfirm(true)}
@@ -112,9 +158,10 @@ function HabitDetail({ h, range, onDelete }: { h: HabitFull; range: DateRange; o
 }
 
 /* ─── HabitListRow ─────────────────────────────────────────────────────────── */
-function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle }: {
+function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle, onValueLogged }: {
   h: HabitFull; isOpen: boolean; range: DateRange; onToggle: () => void; onDelete: (id: string) => void;
   onTodayToggle: (id: string, done: boolean) => void;
+  onValueLogged: (id: string, value: number | null) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [toggling, startToggle] = useTransition();
@@ -140,8 +187,11 @@ function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle }: {
           {h.emoji && <span style={{ fontSize: 18, flexShrink: 0 }}>{h.emoji}</span>}
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ fontSize: 13.5 }}>{h.name}</div>
-            <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)', marginTop: 2 }}>
-              {h.freq}
+            <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)', marginTop: 2, display: 'flex', gap: 8 }}>
+              <span>{h.freq}</span>
+              {h.unit && h.todayValue !== null && (
+                <span style={{ color: 'var(--lo-accent)' }}>{h.todayValue} {h.unit}</span>
+              )}
             </div>
           </div>
         </div>
@@ -187,7 +237,7 @@ function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle }: {
       >
         <Icon name="check" size={13} />
       </button>
-      {isOpen && <HabitDetail h={h} range={range} onDelete={onDelete} />}
+      {isOpen && <HabitDetail h={h} range={range} onDelete={onDelete} onValueLogged={onValueLogged} />}
     </div>
   );
 }
@@ -219,6 +269,10 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
 
   const handleTodayToggle = (id: string, done: boolean) => {
     setHabits(prev => prev.map(h => h.id === id ? { ...h, todayDone: done } : h));
+  };
+
+  const handleValueLogged = (id: string, value: number | null) => {
+    setHabits(prev => prev.map(h => h.id === id ? { ...h, todayValue: value, todayDone: true } : h));
   };
 
   return (
@@ -289,6 +343,7 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
               onToggle={() => setOpen(open === h.id ? null : h.id)}
               onDelete={handleDelete}
               onTodayToggle={handleTodayToggle}
+              onValueLogged={handleValueLogged}
             />
           ))}
         </div>

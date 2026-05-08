@@ -49,6 +49,7 @@ export function AddHabitDialog({ open, onOpenChange, onAdded }: {
 }) {
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('');
+  const [unit, setUnit] = useState('');
   const [mode, setMode] = useState<FreqMode>('count');
   const [count, setCount] = useState(7);
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -64,9 +65,9 @@ export function AddHabitDialog({ open, onOpenChange, onAdded }: {
   const save = () => {
     if (!name.trim() || target === 0) return;
     start(async () => {
-      const habit = await createHabit({ name: name.trim(), emoji: emoji.trim(), freq, type, target });
+      const habit = await createHabit({ name: name.trim(), emoji: emoji.trim(), freq, type, target, unit: unit.trim() || undefined });
       onAdded?.(habit);
-      setName(''); setEmoji(''); setMode('count'); setCount(7); setDays([0, 1, 2, 3, 4]);
+      setName(''); setEmoji(''); setUnit(''); setMode('count'); setCount(7); setDays([0, 1, 2, 3, 4]);
       onOpenChange(false);
     });
   };
@@ -93,6 +94,18 @@ export function AddHabitDialog({ open, onOpenChange, onAdded }: {
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && save()}
               style={{ background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)', color: 'var(--lo-text)' }}
+            />
+          </div>
+
+          {/* Jednostka */}
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--lo-text-muted)', marginBottom: 6 }}>Jednostka (opcjonalna)</div>
+            <Input
+              placeholder="np. min, str., km, powtórzeń"
+              value={unit}
+              onChange={e => setUnit(e.target.value)}
+              maxLength={12}
+              style={{ background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)', color: 'var(--lo-text)', width: 220 }}
             />
           </div>
 
