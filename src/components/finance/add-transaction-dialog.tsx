@@ -14,10 +14,11 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   editTx?: Transaction | null;
+  onAdded?: (tx: Transaction) => void;
   onUpdated?: (tx: Transaction) => void;
 }
 
-export function AddTransactionDialog({ open, onOpenChange, editTx, onUpdated }: Props) {
+export function AddTransactionDialog({ open, onOpenChange, editTx, onAdded, onUpdated }: Props) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -47,7 +48,8 @@ export function AddTransactionDialog({ open, onOpenChange, editTx, onUpdated }: 
         await updateTransaction(editTx.id, payload);
         onUpdated?.({ ...editTx, ...payload, amount: amt });
       } else {
-        await addTransaction(payload);
+        const tx = await addTransaction(payload);
+        onAdded?.(tx);
       }
       onOpenChange(false);
     });

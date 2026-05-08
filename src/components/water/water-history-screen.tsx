@@ -44,6 +44,7 @@ export function WaterHistoryScreen({ history: initialHistory, todayLog }: {
   todayLog: WaterLog;
 }) {
   const [history, setHistory] = useState<DayRow[]>(initialHistory);
+  const [todayMl, setTodayMl] = useState(todayLog.ml);
   const [range, setRange] = useState<DateRange>(30);
   const [loading, startRange] = useTransition();
 
@@ -55,10 +56,17 @@ export function WaterHistoryScreen({ history: initialHistory, todayLog }: {
     });
   };
 
-  const totalDays = history.length;
-  const metGoal = history.filter(r => r.ml >= r.target_ml).length;
-  const avgMl = totalDays ? Math.round(history.reduce((s, r) => s + r.ml, 0) / totalDays) : 0;
-  const oldest = [...history].sort((a, b) => a.date.localeCompare(b.date))[0];
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Keep today's bar in sync when widget updates
+  const historyWithToday = history.map(r =>
+    r.date === todayStr ? { ...r, ml: todayMl } : r
+  );
+
+  const totalDays = historyWithToday.length;
+  const metGoal = historyWithToday.filter(r => r.ml >= r.target_ml).length;
+  const avgMl = totalDays ? Math.round(historyWithToday.reduce((s, r) => s + r.ml, 0) / totalDays) : 0;
+  const oldest = [...historyWithToday].sort((a, b) => a.date.localeCompare(b.date))[0];
 
   return (
     <div className="lo-screen" style={{ padding: '20px 24px 40px', display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 800, margin: '0 auto', width: '100%' }}>
@@ -78,7 +86,7 @@ export function WaterHistoryScreen({ history: initialHistory, todayLog }: {
         {[
           { label: 'Cel osiągnięty', value: `${metGoal}/${totalDays}`, unit: 'dni' },
           { label: 'Średnia',        value: fmtWaterShort(avgMl),       unit: '/ dzień' },
-          { label: 'Dziś',           value: fmtWaterShort(todayLog.ml), unit: `/ ${todayLog.targetMl / 1000} L` },
+          { label: 'Dziś',           value: fmtWaterShort(todayMl),     unit: `/ ${todayLog.targetMl / 1000} L` },
         ].map(s => (
           <div key={s.label} style={{
             background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
@@ -103,11 +111,11 @@ export function WaterHistoryScreen({ history: initialHistory, todayLog }: {
         opacity: loading ? 0.5 : 1, transition: 'opacity .15s',
       }}>
         <div className="label-eyebrow">{range === null ? 'Cała historia' : `Ostatnie ${range} dni`}</div>
-        {history.length === 0
+        {historyWithToday.length === 0
           ? <div style={{ fontSize: 13, color: 'var(--lo-text-muted)' }}>Brak danych w tym zakresie.</div>
-          : <BarChart history={history} />
+          : <BarChart history={historyWithToday} />
         }
-        {history.length > 0 && (
+        {historyWithToday.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--lo-text-dim)', fontFamily: 'var(--font-geist-mono)' }}>
             <span>{oldest?.date ?? ''}</span>
             <span>dziś</span>
@@ -116,7 +124,7 @@ export function WaterHistoryScreen({ history: initialHistory, todayLog }: {
       </div>
 
       {/* Today widget */}
-      <WaterWidget initial={todayLog} />
+      <WaterWidget initial={todayLog} onMlChange={setTodayMl} />
     </div>
   );
 }

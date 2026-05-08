@@ -173,7 +173,11 @@ export function FinanceScreen({ data }: { data: FinanceData }) {
 
   return (
     <>
-      <AddTransactionDialog open={addOpen} onOpenChange={v => { setAddOpen(v); }} />
+      <AddTransactionDialog
+        open={addOpen}
+        onOpenChange={v => { setAddOpen(v); }}
+        onAdded={tx => setTxs(prev => [tx, ...prev])}
+      />
       <AddTransactionDialog
         open={!!editTx}
         onOpenChange={v => { if (!v) setEditTx(null); }}

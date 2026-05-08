@@ -94,12 +94,21 @@ export async function getFinanceData(): Promise<FinanceData> {
 export async function addTransaction(data: {
   date: string; name: string; category: string;
   amount: number; type: 'expense' | 'income' | 'invest';
-}) {
+}): Promise<Transaction> {
   const sb = await createClient();
-  const { error } = await sb.from('transactions').insert(data);
-  if (error) throw new Error(error.message);
+  const { data: row, error } = await sb.from('transactions').insert(data).select().single();
+  if (error || !row) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/finance');
   revalidatePath('/today');
+  return {
+    id: row.id,
+    d: new Date(row.date).toLocaleDateString('pl', { day: '2-digit', month: 'short' }),
+    date: row.date,
+    cat: row.category ?? '',
+    name: row.name,
+    amount: row.amount ?? 0,
+    type: (row.type ?? 'expense') as Transaction['type'],
+  };
 }
 
 export async function updateTransaction(id: string, data: {

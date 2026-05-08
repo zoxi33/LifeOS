@@ -34,15 +34,23 @@ export async function getWeightLogs(): Promise<{
   return { entries, rawPoints };
 }
 
-export async function logWeight(weight_kg: number) {
+export async function logWeight(weight_kg: number): Promise<WeightEntry> {
   const sb = await createClient();
-  const { error } = await sb.from('weight_logs').insert({
-    measured_at: new Date().toISOString(),
-    weight_kg,
-  });
-  if (error) throw new Error(error.message);
+  const measuredAt = new Date().toISOString();
+  const { data: row, error } = await sb.from('weight_logs')
+    .insert({ measured_at: measuredAt, weight_kg })
+    .select()
+    .single();
+  if (error || !row) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/weight');
   revalidatePath('/today');
+  const d = new Date(measuredAt);
+  return {
+    id: row.id,
+    d: d.toLocaleDateString('pl', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', ''),
+    w: weight_kg,
+    delta: 0,
+  };
 }
 
 export async function updateWeightLog(id: string, weight_kg: number) {

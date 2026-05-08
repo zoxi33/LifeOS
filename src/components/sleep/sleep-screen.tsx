@@ -42,11 +42,13 @@ function fmtTime(decimal: number) {
   return `${h}:${String(m).padStart(2, '0')}`;
 }
 
-function LogSleepDialog({ open, onOpenChange, editEntry, onDeleted }: {
+function LogSleepDialog({ open, onOpenChange, editEntry, onDeleted, onAdded, onUpdated }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   editEntry?: SleepDay | null;
   onDeleted?: (id: string) => void;
+  onAdded?: (entry: SleepDay) => void;
+  onUpdated?: (entry: SleepDay) => void;
 }) {
   const [hours, setHours] = useState('7.5');
   const [bed, setBed] = useState('23.0');
@@ -74,8 +76,10 @@ function LogSleepDialog({ open, onOpenChange, editEntry, onDeleted }: {
     start(async () => {
       if (editEntry) {
         await updateSleepLog(editEntry.id, { hours: h, bed_time: b, wake_time: w, quality });
+        onUpdated?.({ ...editEntry, hours: h, bed: b, wake: w, quality });
       } else {
-        await logSleep({ hours: h, bed_time: b, wake_time: w, quality });
+        const entry = await logSleep({ hours: h, bed_time: b, wake_time: w, quality });
+        onAdded?.(entry);
       }
       onOpenChange(false);
     });
@@ -179,6 +183,18 @@ export function SleepScreen({ initialDays = [] }: { initialDays?: SleepDay[] }) 
     });
   };
 
+  const handleAdded = (entry: SleepDay) => {
+    setDays(prev => {
+      const without = prev.filter(d => d.dateStr !== entry.dateStr);
+      return [...without, entry].sort((a, b) => a.dateStr.localeCompare(b.dateStr))
+        .map((d, i) => ({ ...d, date: i }));
+    });
+  };
+
+  const handleUpdated = (entry: SleepDay) => {
+    setDays(prev => prev.map(d => d.id === entry.id ? { ...d, ...entry } : d));
+  };
+
   const handleDeleted = (id: string) => {
     setDays(prev => prev.filter(d => d.id !== id));
   };
@@ -208,12 +224,13 @@ export function SleepScreen({ initialDays = [] }: { initialDays?: SleepDay[] }) 
 
   return (
     <>
-      <LogSleepDialog open={logOpen} onOpenChange={setLogOpen} />
+      <LogSleepDialog open={logOpen} onOpenChange={setLogOpen} onAdded={handleAdded} />
       <LogSleepDialog
         open={!!editEntry}
         onOpenChange={v => { if (!v) setEditEntry(null); }}
         editEntry={editEntry}
         onDeleted={handleDeleted}
+        onUpdated={handleUpdated}
       />
       <div className="lo-screen" style={{
         padding: '20px 24px 40px',

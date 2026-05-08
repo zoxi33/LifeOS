@@ -28,17 +28,34 @@ export function WeightScreen({
   const [logOpen, setLogOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<WeightEntry | null>(null);
   const [entries, setEntries] = useState<WeightEntry[]>(initialEntries);
+  const [points, setPoints] = useState(rawPoints);
   const [period, setPeriod] = useState<Period>('90d');
 
+  const handleAdded = (entry: WeightEntry) => {
+    setEntries(prev => [entry, ...prev]);
+    const todayIso = new Date().toISOString();
+    setPoints(prev => [...prev, { date: todayIso, weight: entry.w }]);
+  };
+
+  const handleUpdated = (entry: WeightEntry) => {
+    setEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
+    setPoints(prev => prev.map(p => {
+      const e = entries.find(e => e.id === entry.id);
+      return e && p.weight === e.w ? { ...p, weight: entry.w } : p;
+    }));
+  };
+
   const handleDeleted = (id: string) => {
+    const removed = entries.find(e => e.id === id);
     setEntries(prev => prev.filter(e => e.id !== id));
+    if (removed) setPoints(prev => prev.filter(p => p.weight !== removed.w));
   };
 
   const filtered = useMemo(() => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - periodDays(period));
-    return rawPoints.filter(p => new Date(p.date) >= cutoff);
-  }, [rawPoints, period]);
+    return points.filter(p => new Date(p.date) >= cutoff);
+  }, [points, period]);
 
   const series = filtered.map(p => p.weight);
 
@@ -58,12 +75,13 @@ export function WeightScreen({
 
   return (
     <>
-      <LogWeightDialog open={logOpen} onOpenChange={setLogOpen} />
+      <LogWeightDialog open={logOpen} onOpenChange={setLogOpen} onAdded={handleAdded} />
       <LogWeightDialog
         open={!!editEntry}
         onOpenChange={v => { if (!v) setEditEntry(null); }}
         editEntry={editEntry}
         onDeleted={handleDeleted}
+        onUpdated={handleUpdated}
       />
       <div className="lo-screen" style={{
         padding: '20px 24px 40px',

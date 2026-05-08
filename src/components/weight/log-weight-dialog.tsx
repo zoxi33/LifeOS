@@ -12,9 +12,11 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   editEntry?: WeightEntry | null;
   onDeleted?: (id: string) => void;
+  onAdded?: (entry: WeightEntry) => void;
+  onUpdated?: (entry: WeightEntry) => void;
 }
 
-export function LogWeightDialog({ open, onOpenChange, editEntry, onDeleted }: Props) {
+export function LogWeightDialog({ open, onOpenChange, editEntry, onDeleted, onAdded, onUpdated }: Props) {
   const [value, setValue] = useState('');
   const [pending, start] = useTransition();
   const [deleting, startDelete] = useTransition();
@@ -33,8 +35,10 @@ export function LogWeightDialog({ open, onOpenChange, editEntry, onDeleted }: Pr
     start(async () => {
       if (editEntry) {
         await updateWeightLog(editEntry.id, w);
+        onUpdated?.({ ...editEntry, w });
       } else {
-        await logWeight(w);
+        const entry = await logWeight(w);
+        onAdded?.(entry);
       }
       setValue('');
       onOpenChange(false);

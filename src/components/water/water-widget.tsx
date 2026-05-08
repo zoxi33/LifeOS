@@ -7,7 +7,7 @@ import type { WaterLog } from '@/app/(shell)/water/actions';
 
 const QUICK_ADD = [200, 250, 330, 500];
 
-export function WaterWidget({ initial }: { initial: WaterLog }) {
+export function WaterWidget({ initial, onMlChange }: { initial: WaterLog; onMlChange?: (ml: number) => void }) {
   const [ml, setMl] = useState(initial.ml);
   const [targetMl, setTargetMl] = useState(initial.targetMl);
   const [editTarget, setEditTarget] = useState(false);
@@ -25,12 +25,14 @@ export function WaterWidget({ initial }: { initial: WaterLog }) {
   const doAdd = (amount: number) => {
     const next = Math.max(0, ml + amount);
     setMl(next);
+    onMlChange?.(next);
     startAdd(() => addWaterMl(amount, ml, targetMl));
   };
 
   const doUndo = () => {
     const next = Math.max(0, ml - QUICK_ADD[0]);
     setMl(next);
+    onMlChange?.(next);
     startAdd(() => setWaterMl(next, targetMl));
   };
 
