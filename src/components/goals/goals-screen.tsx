@@ -15,8 +15,9 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
   onDeactivated: (id: string) => void;
 }) {
   const [inputVal, setInputVal] = useState(String(g.current));
-  const [saving, startSave] = useTransition();
-  const [resetting, startReset] = useTransition();
+  const [saving, setSaving] = useState(false);
+  const [, startSave] = useTransition();
+  const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [deactivating, startDeactivate] = useTransition();
@@ -169,18 +170,19 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
                   <span style={{ fontSize: 11, color: 'var(--lo-text-muted)', fontFamily: 'var(--font-geist-mono)' }}>Na pewno? Streak wróci do 0.</span>
                   <button
                     disabled={resetting}
-                    onClick={() => {
+                    onClick={async () => {
+                      setResetting(true);
                       setResetError(null);
-                      startReset(async () => {
-                        try {
-                          await resetAbstinence(g.id);
-                          onReset(g.id);
-                          setConfirmReset(false);
-                        } catch (e) {
-                          setResetError(e instanceof Error ? e.message : 'Nieznany błąd');
-                          setConfirmReset(false);
-                        }
-                      });
+                      try {
+                        await resetAbstinence(g.id);
+                        onReset(g.id);
+                        setConfirmReset(false);
+                      } catch (e) {
+                        setResetError(e instanceof Error ? e.message : 'Nieznany błąd');
+                        setConfirmReset(false);
+                      } finally {
+                        setResetting(false);
+                      }
                     }}
                     style={{
                       height: 26, padding: '0 10px',
@@ -228,7 +230,11 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
               <div className="label-eyebrow" style={{ flexShrink: 0 }}>Status</div>
               <button
                 disabled={saving}
-                onClick={() => startSave(async () => { await updateGoalProgress(g.id, done ? 0 : 1); onProgressSaved(g.id, done ? 0 : 1); })}
+                onClick={async () => {
+                  setSaving(true);
+                  try { await updateGoalProgress(g.id, done ? 0 : 1); onProgressSaved(g.id, done ? 0 : 1); }
+                  finally { setSaving(false); }
+                }}
                 style={{
                   height: 32, padding: '0 14px',
                   background: done ? 'var(--lo-surface-2)' : 'var(--lo-accent-soft)',
