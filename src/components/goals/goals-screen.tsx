@@ -5,16 +5,19 @@ import { Icon } from '@/components/primitives/icon';
 import { HabitRing } from '@/components/primitives/habit-ring';
 import { Bar } from '@/components/primitives/bar';
 import { AddGoalDialog } from './add-goal-dialog';
-import { updateGoalProgress, toggleMilestone, deactivateGoal, addMilestone, deleteMilestone } from '@/app/(shell)/goals/actions';
+import { updateGoalProgress, toggleMilestone, deactivateGoal, addMilestone, deleteMilestone, resetAbstinence } from '@/app/(shell)/goals/actions';
 import type { Goal, Milestone } from '@/types/lifeos';
 
-function GoalDetail({ g, onProgressSaved, onDeactivated }: {
+function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
   g: Goal;
   onProgressSaved: (id: string, newCurrent: number) => void;
+  onReset: (id: string) => void;
   onDeactivated: (id: string) => void;
 }) {
   const [inputVal, setInputVal] = useState(String(g.current));
   const [saving, startSave] = useTransition();
+  const [resetting, startReset] = useTransition();
+  const [confirmReset, setConfirmReset] = useState(false);
   const [deactivating, startDeactivate] = useTransition();
   const [confirmDel, setConfirmDel] = useState(false);
   const [localMilestones, setLocalMilestones] = useState<Milestone[]>(g.milestones);
@@ -59,8 +62,11 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
   };
 
   const isText = g.goalType === 'text';
+  const isAbstinence = g.goalType === 'abstinence';
   const done = isText && g.current >= 1;
-  const pct = isText ? (done ? 100 : 0) : Math.min(100, Math.round((parseFloat(inputVal) / (g.target || 1)) * 100));
+  const pct = isText ? (done ? 100 : 0)
+    : isAbstinence ? (g.target > 0 ? Math.min(100, Math.round((g.current / g.target) * 100)) : 0)
+    : Math.min(100, Math.round((parseFloat(inputVal) / (g.target || 1)) * 100));
 
   return (
     <div style={{
@@ -90,6 +96,11 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
             {isText ? (
               <Icon name={done ? 'check' : 'clock'} size={22} style={{ color: done ? 'var(--lo-accent)' : 'var(--lo-text-faint)' }} />
+            ) : isAbstinence ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{g.current}</div>
+                <div style={{ fontSize: 9, color: 'var(--lo-text-faint)', marginTop: 2 }}>dni</div>
+              </div>
             ) : (
               <div style={{
                 fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
@@ -109,7 +120,68 @@ function GoalDetail({ g, onProgressSaved, onDeactivated }: {
         borderBottom: '1px solid var(--lo-border)',
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
-        {isText ? (
+        {isAbstinence ? (
+          /* Abstinence goal */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <div style={{ padding: '12px 14px', background: 'var(--lo-surface-2)', borderRadius: 8, border: '1px solid var(--lo-border)' }}>
+                <div className="label-eyebrow" style={{ marginBottom: 6 }}>Streak</div>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 22, fontWeight: 600, color: 'var(--lo-accent)' }}>
+                  {g.current}<span style={{ fontSize: 11, color: 'var(--lo-text-faint)', marginLeft: 3 }}>dni</span>
+                </div>
+              </div>
+              <div style={{ padding: '12px 14px', background: 'var(--lo-surface-2)', borderRadius: 8, border: '1px solid var(--lo-border)' }}>
+                <div className="label-eyebrow" style={{ marginBottom: 6 }}>Cel</div>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 22, fontWeight: 600 }}>
+                  {g.target > 0 ? <>{g.target}<span style={{ fontSize: 11, color: 'var(--lo-text-faint)', marginLeft: 3 }}>dni</span></> : <span style={{ fontSize: 14, color: 'var(--lo-text-faint)' }}>—</span>}
+                </div>
+              </div>
+              <div style={{ padding: '12px 14px', background: 'var(--lo-surface-2)', borderRadius: 8, border: '1px solid var(--lo-border)' }}>
+                <div className="label-eyebrow" style={{ marginBottom: 6 }}>Start</div>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 12, color: 'var(--lo-text-muted)', marginTop: 6 }}>
+                  {g.startDate || '—'}
+                </div>
+              </div>
+            </div>
+            {g.note && <div style={{ fontSize: 12, color: 'var(--lo-text-muted)' }}>{g.note}</div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="label-eyebrow" style={{ flexShrink: 0 }}>Odliczanie</div>
+              {!confirmReset ? (
+                <button
+                  onClick={() => setConfirmReset(true)}
+                  style={{
+                    height: 32, padding: '0 14px',
+                    background: 'var(--lo-surface-2)', color: 'var(--lo-text-muted)',
+                    border: '1px solid var(--lo-border)', borderRadius: 8,
+                    fontSize: 13, fontFamily: 'inherit',
+                  }}
+                >
+                  Zresetuj odliczanie
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: 'var(--lo-text-muted)', fontFamily: 'var(--font-geist-mono)' }}>Na pewno? Streak wróci do 0.</span>
+                  <button
+                    disabled={resetting}
+                    onClick={() => startReset(async () => { await resetAbstinence(g.id); onReset(g.id); setConfirmReset(false); })}
+                    style={{
+                      height: 26, padding: '0 10px',
+                      background: 'color-mix(in oklch, var(--lo-danger) 12%, transparent)',
+                      color: 'var(--lo-danger)',
+                      border: '1px solid color-mix(in oklch, var(--lo-danger) 30%, transparent)',
+                      borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >{resetting ? '…' : 'Tak, resetuj'}</button>
+                  <button onClick={() => setConfirmReset(false)} style={{
+                    height: 26, padding: '0 10px', background: 'var(--lo-surface-2)',
+                    color: 'var(--lo-text-muted)', border: '1px solid var(--lo-border)',
+                    borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>Nie</button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : isText ? (
           /* Text goal: show state arrow + done toggle */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -374,6 +446,13 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
     }));
   };
 
+  const handleReset = (id: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    setGoals(prev => prev.map(g =>
+      g.id === id ? { ...g, current: 0, pct: 0, startDate: today } : g
+    ));
+  };
+
   const handleDeactivated = (id: string) => {
     const remaining = goals.filter(g => g.id !== id);
     setGoals(remaining);
@@ -463,6 +542,11 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
                       color: x.current >= 1 ? 'var(--lo-accent)' : 'var(--lo-text-muted)',
                       letterSpacing: '.04em',
                     }}>{x.current >= 1 ? 'osiągnięty' : 'w toku'}</span>
+                  ) : x.goalType === 'abstinence' ? (
+                    <span style={{
+                      fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
+                      fontSize: 11, color: 'var(--lo-accent)',
+                    }}>{x.current} dni</span>
                   ) : (
                     <span style={{
                       fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums',
@@ -475,6 +559,8 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
                   <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>
                     {x.currentText || '—'} → {x.targetText || '—'}
                   </div>
+                ) : x.goalType === 'abstinence' ? (
+                  <Bar value={x.target > 0 ? x.pct : Math.min(100, x.current)} h={3} />
                 ) : (
                   <Bar value={x.pct} h={3} />
                 )}
@@ -484,7 +570,7 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
         </div>
 
         {/* Detail */}
-        <GoalDetail key={g.id} g={g} onProgressSaved={handleProgressSaved} onDeactivated={handleDeactivated} />
+        <GoalDetail key={g.id} g={g} onProgressSaved={handleProgressSaved} onReset={handleReset} onDeactivated={handleDeactivated} />
       </div>
     </>
   );

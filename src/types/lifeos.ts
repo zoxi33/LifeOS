@@ -50,7 +50,7 @@ export interface Goal {
   id: string;
   name: string;
   category: string;
-  goalType: 'numeric' | 'text';
+  goalType: 'numeric' | 'text' | 'abstinence';
   pct: number;
   current: number;
   target: number;
