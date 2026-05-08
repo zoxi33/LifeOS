@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { Heatmap } from '@/components/primitives/heatmap';
 import { Sparkline } from '@/components/primitives/sparkline';
 import { SectionHeader } from '@/components/primitives/section-header';
@@ -31,6 +31,62 @@ function fmtAvgValue(avg: number, unit: string): string {
     return `${h}h ${m}min`;
   }
   return `${avg % 1 === 0 ? avg : avg.toFixed(1)} ${unit}`;
+}
+
+// ─── BarTooltip ──────────────────────────────────────────────────────────────
+
+function BarTooltip({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{
+      pointerEvents: 'none',
+      background: 'var(--lo-surface)',
+      border: '1px solid var(--lo-border-strong)',
+      borderRadius: 8,
+      padding: '7px 11px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+      whiteSpace: 'nowrap',
+    }}>
+      <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 10, color: 'var(--lo-text-faint)', letterSpacing: '.04em' }}>
+        {label}
+      </div>
+      <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 14, fontWeight: 600, color: 'var(--lo-accent)' }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function useMouseTooltip() {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string; value: string } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const show = (e: React.MouseEvent, label: string, value: string) => {
+    setTooltip({ x: e.clientX, y: e.clientY, label, value });
+  };
+  const move = (e: React.MouseEvent) => {
+    setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+  };
+  const hide = () => setTooltip(null);
+
+  const portal = tooltip ? (
+    <div
+      ref={ref}
+      style={{
+        position: 'fixed',
+        left: tooltip.x + 14,
+        top: tooltip.y - 10,
+        zIndex: 9999,
+        transform: 'translateY(-50%)',
+      }}
+    >
+      <BarTooltip label={tooltip.label} value={tooltip.value} />
+    </div>
+  ) : null;
+
+  return { show, move, hide, portal };
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -84,6 +140,90 @@ function EmptyState({ text }: { text: string }) {
       padding: '32px 0', textAlign: 'center',
       fontSize: 13, color: 'var(--lo-text-muted)',
     }}>{text}</div>
+  );
+}
+
+// ─── HabitValueSection ───────────────────────────────────────────────────────
+
+function HabitValueSection({ statsInPeriod, days }: {
+  statsInPeriod: { id: string; name: string; unit: string; logs: { date: string; value: number }[] }[];
+  days: number;
+}) {
+  const { show, move, hide, portal } = useMouseTooltip();
+
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <>
+      {portal}
+      <div style={{
+        background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
+        borderRadius: 12, padding: '18px 20px',
+      }}>
+        <SectionHeader eyebrow={`Wartości nawyków · ${days}d`} title="Sumy i średnie" />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 4 }}>
+          {statsInPeriod.map(h => {
+            const total = h.logs.reduce((s, l) => s + l.value, 0);
+            const avg = total / h.logs.length;
+            const maxVal = Math.max(...h.logs.map(l => l.value));
+            const isTime = isTimeUnit(h.unit);
+            const fmtVal = (v: number) => isTime ? fmtTotalValue(v, h.unit) : `${v % 1 === 0 ? v : v.toFixed(1)} ${h.unit}`;
+
+            return (
+              <div key={h.id}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--lo-text)' }}>{h.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>{h.unit}</div>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 12, flexWrap: 'wrap' }}>
+                    <span style={{ color: 'var(--lo-text-muted)' }}>
+                      łącznie <span style={{ color: 'var(--lo-accent)', fontWeight: 600 }}>{fmtTotalValue(total, h.unit)}</span>
+                    </span>
+                    <span style={{ color: 'var(--lo-text-muted)' }}>
+                      śr. <span style={{ color: 'var(--lo-text)' }}>{fmtAvgValue(avg, h.unit)}</span> / sesję
+                    </span>
+                    <span style={{ color: 'var(--lo-text-muted)' }}>
+                      max <span style={{ color: 'var(--lo-text)' }}>{fmtAvgValue(maxVal, h.unit)}</span>
+                    </span>
+                    <span style={{ color: 'var(--lo-text-dim)' }}>{h.logs.length}×</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 52 }}>
+                  {h.logs.slice(-Math.min(h.logs.length, days)).map((l, i) => (
+                    <div
+                      key={i}
+                      onMouseEnter={e => {
+                        show(e, fmtDate(l.date), fmtVal(l.value));
+                        (e.currentTarget as HTMLDivElement).style.background = 'var(--lo-accent)';
+                        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--lo-accent)';
+                      }}
+                      onMouseMove={move}
+                      onMouseLeave={e => {
+                        hide();
+                        (e.currentTarget as HTMLDivElement).style.background = 'var(--lo-accent-soft)';
+                        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--lo-accent-line)';
+                      }}
+                      style={{
+                        flex: 1, minWidth: 3,
+                        height: Math.max(3, (l.value / maxVal) * 48),
+                        background: 'var(--lo-accent-soft)',
+                        border: '1px solid var(--lo-accent-line)',
+                        borderRadius: '2px 2px 0 0',
+                        cursor: 'default',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -274,63 +414,7 @@ export function StatsScreen({ data }: { data: StatsData }) {
 
         if (statsInPeriod.length === 0) return null;
 
-        return (
-          <div style={{
-            background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
-            borderRadius: 12, padding: '18px 20px',
-          }}>
-            <SectionHeader eyebrow={`Wartości nawyków · ${days}d`} title="Sumy i średnie" />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 4 }}>
-              {statsInPeriod.map(h => {
-                const total = h.logs.reduce((s, l) => s + l.value, 0);
-                const avg = total / h.logs.length;
-                const max = Math.max(...h.logs.map(l => l.value));
-                const maxVal = max;
-                const isTime = isTimeUnit(h.unit);
-
-                return (
-                  <div key={h.id}>
-                    {/* Row header */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--lo-text)' }}>{h.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>{h.unit}</div>
-                      <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>
-                        <span style={{ color: 'var(--lo-text-muted)' }}>
-                          łącznie <span style={{ color: 'var(--lo-accent)', fontWeight: 600 }}>{fmtTotalValue(total, h.unit)}</span>
-                        </span>
-                        <span style={{ color: 'var(--lo-text-muted)' }}>
-                          śr. <span style={{ color: 'var(--lo-text)' }}>{fmtAvgValue(avg, h.unit)}</span> / sesję
-                        </span>
-                        <span style={{ color: 'var(--lo-text-muted)' }}>
-                          max <span style={{ color: 'var(--lo-text)' }}>{fmtAvgValue(maxVal, h.unit)}</span>
-                        </span>
-                        <span style={{ color: 'var(--lo-text-dim)' }}>{h.logs.length}×</span>
-                      </div>
-                    </div>
-
-                    {/* Mini bar chart */}
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 48 }}>
-                      {h.logs.slice(-Math.min(h.logs.length, days)).map((l, i) => (
-                        <div
-                          key={i}
-                          title={`${l.date}: ${isTime ? fmtTotalValue(l.value, h.unit) : l.value + ' ' + h.unit}`}
-                          style={{
-                            flex: 1, minWidth: 3,
-                            height: Math.max(3, (l.value / maxVal) * 44),
-                            background: 'var(--lo-accent-soft)',
-                            border: '1px solid var(--lo-accent-line)',
-                            borderRadius: '2px 2px 0 0',
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
+        return <HabitValueSection statsInPeriod={statsInPeriod} days={days} />;
       })()}
 
       {/* ── Scatter + Weight ── */}
