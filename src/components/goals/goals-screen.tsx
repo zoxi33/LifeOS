@@ -18,6 +18,7 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
   const [saving, startSave] = useTransition();
   const [resetting, startReset] = useTransition();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   const [deactivating, startDeactivate] = useTransition();
   const [confirmDel, setConfirmDel] = useState(false);
   const [localMilestones, setLocalMilestones] = useState<Milestone[]>(g.milestones);
@@ -144,11 +145,16 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
               </div>
             </div>
             {g.note && <div style={{ fontSize: 12, color: 'var(--lo-text-muted)' }}>{g.note}</div>}
+            {resetError && (
+              <div style={{ fontSize: 12, color: 'var(--lo-danger)', background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, padding: '8px 12px' }}>
+                Błąd resetu: {resetError}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div className="label-eyebrow" style={{ flexShrink: 0 }}>Odliczanie</div>
               {!confirmReset ? (
                 <button
-                  onClick={() => setConfirmReset(true)}
+                  onClick={() => { setResetError(null); setConfirmReset(true); }}
                   style={{
                     height: 32, padding: '0 14px',
                     background: 'var(--lo-surface-2)', color: 'var(--lo-text-muted)',
@@ -163,7 +169,19 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
                   <span style={{ fontSize: 11, color: 'var(--lo-text-muted)', fontFamily: 'var(--font-geist-mono)' }}>Na pewno? Streak wróci do 0.</span>
                   <button
                     disabled={resetting}
-                    onClick={() => startReset(async () => { await resetAbstinence(g.id); onReset(g.id); setConfirmReset(false); })}
+                    onClick={() => {
+                      setResetError(null);
+                      startReset(async () => {
+                        try {
+                          await resetAbstinence(g.id);
+                          onReset(g.id);
+                          setConfirmReset(false);
+                        } catch (e) {
+                          setResetError(e instanceof Error ? e.message : 'Nieznany błąd');
+                          setConfirmReset(false);
+                        }
+                      });
+                    }}
                     style={{
                       height: 26, padding: '0 10px',
                       background: 'color-mix(in oklch, var(--lo-danger) 12%, transparent)',
