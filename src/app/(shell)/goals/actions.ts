@@ -42,8 +42,16 @@ export async function createGoal(data: {
   target: number; unit: string; due_date: string; note: string;
 }): Promise<Goal> {
   const sb = await createClient();
-  const payload = { ...data, due_date: data.due_date || null };
-  const { data: row, error } = await sb.from('goals').insert(payload).select('*, goal_milestones(*)').single();
+  const payload = {
+    name: data.name,
+    category: data.category,
+    current: data.current,
+    target: data.target,
+    unit: data.unit || null,
+    due_date: data.due_date || null,
+    note: data.note || null,
+  };
+  const { data: row, error } = await sb.from('goals').insert(payload).select().single();
   if (error || !row) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/goals');
   const current = row.current ?? 0;

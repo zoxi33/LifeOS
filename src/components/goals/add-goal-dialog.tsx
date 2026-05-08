@@ -21,17 +21,23 @@ export function AddGoalDialog({ open, onOpenChange, onAdded }: {
   const [dueDate, setDueDate] = useState('');
   const [note, setNote] = useState('');
   const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const save = () => {
     const cur = parseFloat(current) || 0;
     const tgt = parseFloat(target.replace(',', '.'));
     if (!name.trim() || isNaN(tgt)) return;
+    setError(null);
     start(async () => {
-      const goal = await createGoal({ name: name.trim(), category, current: cur, target: tgt, unit, due_date: dueDate, note });
-      onAdded?.(goal);
-      setName(''); setCategory('Inne'); setCurrent('0'); setTarget('');
-      setUnit(''); setDueDate(''); setNote('');
-      onOpenChange(false);
+      try {
+        const goal = await createGoal({ name: name.trim(), category, current: cur, target: tgt, unit, due_date: dueDate, note });
+        onAdded?.(goal);
+        setName(''); setCategory('Inne'); setCurrent('0'); setTarget('');
+        setUnit(''); setDueDate(''); setNote('');
+        onOpenChange(false);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Nieznany błąd');
+      }
     });
   };
 
@@ -95,6 +101,12 @@ export function AddGoalDialog({ open, onOpenChange, onAdded }: {
                 style={{ background: 'var(--lo-bg-2)', border: '1px solid var(--lo-border)', color: 'var(--lo-text)' }} />
             </div>
           </div>
+
+          {error && (
+            <div style={{ fontSize: 12, color: 'var(--lo-danger)', background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.2)', borderRadius: 8, padding: '8px 12px' }}>
+              Błąd: {error}
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button variant="ghost" onClick={() => onOpenChange(false)} style={{ color: 'var(--lo-text-muted)' }}>Anuluj</Button>
