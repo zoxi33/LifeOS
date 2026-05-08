@@ -11,16 +11,25 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const [debug, setDebug] = useState<string | null>(null);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setDebug(null);
     setLoading(true);
     const supabase = createClient();
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    setDebug(`Próba logowania: ${email}`);
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (err) { setError(err.message); return; }
-    router.push('/today');
-    router.refresh();
+    if (err) {
+      setDebug(`Błąd: ${err.message} (${err.status})`);
+      setError(err.message);
+      return;
+    }
+    setDebug(`Zalogowano jako: ${data.user?.email} | UID: ${data.user?.id}`);
+    // nie przekierowuj od razu — pokaż debug przez 3 sekundy
+    setTimeout(() => { router.push('/today'); router.refresh(); }, 3000);
   };
 
   return (
@@ -77,6 +86,12 @@ export function LoginForm() {
             }}
           />
         </div>
+
+        {debug && (
+          <div style={{ fontSize: 11, color: 'var(--lo-text-muted)', padding: '8px 12px', background: 'var(--lo-surface-2)', borderRadius: 6, fontFamily: 'var(--font-geist-mono)', wordBreak: 'break-all' }}>
+            {debug}
+          </div>
+        )}
 
         {error && (
           <div style={{ fontSize: 12, color: 'var(--lo-danger)', padding: '8px 12px', background: 'oklch(0.68 0.16 25 / 0.1)', borderRadius: 6 }}>
