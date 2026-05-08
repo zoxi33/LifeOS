@@ -275,6 +275,19 @@ input[type="range"] {
     align-items: flex-start !important;
     flex-direction: row !important;
   }
+
+  /* Hide XP card on mobile — XP bar is already in the top bar */
+  .lo-today-xp-card { display: none !important; }
+
+  /* Today top row: make it single card + streak only (no XP col) */
+  .lo-today-top-row { grid-template-columns: 1fr !important; }
+
+  /* Journal mobile: hide list when viewing detail, hide detail when on list */
+  .lo-journal-list { display: none !important; }
+  .lo-journal-detail { display: none !important; }
+
+  /* Journal mobile: show back button */
+  .lo-journal-back { display: inline-flex !important; }
 }
 
 /* ─────────────────────────────────────────────────────────────────

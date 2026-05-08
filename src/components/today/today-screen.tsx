@@ -144,7 +144,7 @@ export function TodayScreen({ initialHabits = [], stats, finance, goals = [], xp
               )}
 
               {xp ? (
-                <XPCard xp={xp} />
+                <div className="lo-today-xp-card"><XPCard xp={xp} /></div>
               ) : (
                 <div style={{
                   background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',

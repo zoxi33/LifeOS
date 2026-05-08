@@ -61,17 +61,17 @@ export function PushButton() {
       onClick={state === 'subscribed' ? unsubscribe : subscribe}
       title={state === 'subscribed' ? 'Wyłącz powiadomienia' : 'Włącz powiadomienia'}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        height: 28, padding: '0 10px',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 32, height: 32,
         background: state === 'subscribed'
           ? 'color-mix(in oklch, var(--lo-accent) 12%, transparent)'
           : 'var(--lo-surface-2)',
         color: state === 'subscribed' ? 'var(--lo-accent)' : 'var(--lo-text-muted)',
         border: `1px solid ${state === 'subscribed' ? 'var(--lo-accent-line)' : 'var(--lo-border)'}`,
-        borderRadius: 6, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+        borderRadius: 8, cursor: 'pointer', fontSize: 16, flexShrink: 0,
       }}
     >
-      {state === 'subscribed' ? '🔔 Powiadomienia włączone' : '🔕 Włącz powiadomienia'}
+      {state === 'subscribed' ? '🔔' : '🔕'}
     </button>
   );
 }

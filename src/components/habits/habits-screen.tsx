@@ -9,26 +9,172 @@ import { AddHabitDialog } from './add-habit-dialog';
 import { deleteHabit, toggleHabitLog, getHabitsRange, logHabitValue } from '@/app/(shell)/habits/actions';
 import type { HabitFull } from '@/types/lifeos';
 
+function isTimeUnit(unit: string): boolean {
+  return /^(min|minut[ay]?|godzin[ay]?|h|hr)$/i.test(unit.trim());
+}
+
+function fmtValue(value: number, unit: string): string {
+  if (isTimeUnit(unit) && (unit.toLowerCase().startsWith('min') || unit === 'min')) {
+    const h = Math.floor(value / 60);
+    const m = value % 60;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  }
+  if (isTimeUnit(unit) && (unit === 'h' || unit === 'hr')) {
+    return `${value}h`;
+  }
+  return `${value} ${unit}`;
+}
+
 type FilterType = 'all' | 'daily' | 'weekly' | 'custom';
 
+/* ─── HabitValueLogger ─────────────────────────────────────────────────────── */
+function HabitValueLogger({ h, onValueLogged }: {
+  h: HabitFull;
+  onValueLogged?: (id: string, value: number | null) => void;
+}) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [logDate, setLogDate] = useState(todayStr);
+  const [valuePending, startValue] = useTransition();
+
+  const isTime = isTimeUnit(h.unit);
+  // Derive existing value for selected date from logs
+  const existingLog = h.logs.find(l => l.date === logDate);
+  const existingValue = existingLog?.value ?? null;
+
+  // h/min state for time units
+  const initH = existingValue !== null && isTime ? Math.floor(existingValue / 60) : 0;
+  const initM = existingValue !== null && isTime ? existingValue % 60 : (existingValue ?? 0);
+  const [hours, setHours] = useState(initH > 0 ? String(initH) : '');
+  const [mins, setMins] = useState(!isTime ? (existingValue !== null ? String(existingValue) : '') : (initM > 0 ? String(initM) : ''));
+  const [numVal, setNumVal] = useState(existingValue !== null && !isTime ? String(existingValue) : '');
+  const [saved, setSaved] = useState(false);
+
+  // Sync inputs when date changes
+  const handleDateChange = (d: string) => {
+    setLogDate(d);
+    const log = h.logs.find(l => l.date === d);
+    const v = log?.value ?? null;
+    if (isTime) {
+      const h2 = v !== null ? Math.floor(v / 60) : 0;
+      const m2 = v !== null ? v % 60 : 0;
+      setHours(h2 > 0 ? String(h2) : '');
+      setMins(m2 > 0 ? String(m2) : '');
+    } else {
+      setNumVal(v !== null ? String(v) : '');
+    }
+    setSaved(false);
+  };
+
+  const save = () => {
+    let v: number | null;
+    if (isTime) {
+      const total = (parseInt(hours || '0') * 60) + parseInt(mins || '0');
+      v = total > 0 ? total : null;
+    } else {
+      v = numVal.trim() === '' ? null : parseFloat(numVal);
+      if (v !== null && isNaN(v)) return;
+    }
+    if (logDate === todayStr) onValueLogged?.(h.id, v);
+    startValue(async () => {
+      await logHabitValue(h.id, logDate, v);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    });
+  };
+
+  const inp = (style?: React.CSSProperties): React.CSSProperties => ({
+    height: 32, borderRadius: 6, padding: '0 8px', textAlign: 'center',
+    background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)',
+    color: 'var(--lo-text)', fontSize: 14, fontFamily: 'var(--font-geist-mono)',
+    ...style,
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Date selector */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>Data:</div>
+        {[0,1,2,3,4,5,6].map(offset => {
+          const d = new Date(); d.setDate(d.getDate() - offset);
+          const ds = d.toISOString().slice(0, 10);
+          const label = offset === 0 ? 'Dziś' : offset === 1 ? 'Wczoraj' : d.toLocaleDateString('pl', { weekday: 'short', day: 'numeric' });
+          const hasLog = h.logs.some(l => l.date === ds && (l.done || l.value));
+          return (
+            <button key={ds} onClick={() => handleDateChange(ds)} style={{
+              height: 26, padding: '0 8px', borderRadius: 6, fontSize: 11,
+              fontFamily: 'var(--font-geist-mono)',
+              background: logDate === ds ? 'var(--lo-accent-soft)' : hasLog ? 'var(--lo-surface-2)' : 'transparent',
+              border: '1px solid ' + (logDate === ds ? 'var(--lo-accent-line)' : hasLog ? 'var(--lo-border-strong)' : 'var(--lo-border)'),
+              color: logDate === ds ? 'var(--lo-accent)' : hasLog ? 'var(--lo-text-muted)' : 'var(--lo-text-dim)',
+              cursor: 'pointer',
+            }}>{label}{hasLog && logDate !== ds ? ' ✓' : ''}</button>
+          );
+        })}
+        <input type="date" value={logDate} onChange={e => handleDateChange(e.target.value)}
+          max={todayStr}
+          style={{ height: 26, borderRadius: 6, padding: '0 6px', fontSize: 11, background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)', color: 'var(--lo-text-muted)', cursor: 'pointer' }}
+        />
+      </div>
+
+      {/* Value input */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        {isTime ? (
+          <>
+            <input type="number" min={0} max={23} placeholder="0" value={hours}
+              onChange={e => { setHours(e.target.value); setSaved(false); }}
+              onKeyDown={e => e.key === 'Enter' && save()}
+              style={inp({ width: 52 })} />
+            <span style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>h</span>
+            <input type="number" min={0} max={59} placeholder="0" value={mins}
+              onChange={e => { setMins(e.target.value); setSaved(false); }}
+              onKeyDown={e => e.key === 'Enter' && save()}
+              style={inp({ width: 52 })} />
+            <span style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>min</span>
+            {(parseInt(hours||'0')*60+parseInt(mins||'0')) > 0 && (
+              <span style={{ fontSize: 12, color: 'var(--lo-accent)', fontFamily: 'var(--font-geist-mono)' }}>
+                = {fmtValue(parseInt(hours||'0')*60+parseInt(mins||'0'), 'min')}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <input type="number" min={0} step="any" placeholder="0" value={numVal}
+              onChange={e => { setNumVal(e.target.value); setSaved(false); }}
+              onKeyDown={e => e.key === 'Enter' && save()}
+              style={inp({ width: 80 })} />
+            <span style={{ fontSize: 12, color: 'var(--lo-text-muted)' }}>{h.unit}</span>
+          </>
+        )}
+        <button onClick={save} disabled={valuePending} style={{
+          height: 32, padding: '0 12px', borderRadius: 6,
+          background: saved ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+          color: saved ? 'var(--lo-accent)' : 'var(--lo-text-muted)',
+          border: '1px solid ' + (saved ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
+          fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+        }}>{valuePending ? '…' : saved ? '✓ Zapisano' : 'Zapisz'}</button>
+      </div>
+
+      {/* Existing value display */}
+      {existingValue !== null && (
+        <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>
+          Zapisane: {fmtValue(existingValue, h.unit)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── HabitDetail ──────────────────────────────────────────────────────────── */
-function HabitDetail({ h, range, onDelete, onValueLogged }: {
+function HabitDetail({ h, range, onDelete, onValueLogged, onEdit }: {
   h: HabitFull; range: DateRange;
   onDelete: (id: string) => void;
   onValueLogged?: (id: string, value: number | null) => void;
+  onEdit: () => void;
 }) {
   const [confirm, setConfirm] = useState(false);
   const [pending, start] = useTransition();
-  const [valueInput, setValueInput] = useState(h.todayValue !== null ? String(h.todayValue) : '');
-  const [valuePending, startValue] = useTransition();
-
-  const saveValue = () => {
-    const v = valueInput.trim() === '' ? null : parseFloat(valueInput);
-    if (v !== null && isNaN(v)) return;
-    const today = new Date().toISOString().slice(0, 10);
-    onValueLogged?.(h.id, v);
-    startValue(async () => { await logHabitValue(h.id, today, v); });
-  };
 
   const heatmapDays = range === null ? Math.max(84, h.logs.length) : range;
   const logMap = new Map(h.logs.map(l => [l.date, l.done]));
@@ -72,38 +218,35 @@ function HabitDetail({ h, range, onDelete, onValueLogged }: {
         </div>
       </div>
       {h.unit && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>Dziś ({h.unit})</div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input
-              type="number"
-              min={0}
-              step="any"
-              placeholder="0"
-              value={valueInput}
-              onChange={e => setValueInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveValue()}
-              style={{
-                width: 80, height: 30, borderRadius: 6, padding: '0 8px',
-                background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)',
-                color: 'var(--lo-text)', fontSize: 13, fontFamily: 'var(--font-geist-mono)',
-              }}
-            />
-            <span style={{ fontSize: 12, color: 'var(--lo-text-muted)' }}>{h.unit}</span>
-            <button
-              onClick={saveValue}
-              disabled={valuePending}
-              style={{
-                height: 30, padding: '0 10px', borderRadius: 6,
-                background: 'var(--lo-accent-soft)', color: 'var(--lo-accent)',
-                border: '1px solid var(--lo-accent-line)', fontSize: 12,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >{valuePending ? '…' : 'Zapisz'}</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 11, color: 'var(--lo-text-faint)' }}>
+            Loguj ({h.unit})
           </div>
+          <HabitValueLogger h={h} onValueLogged={onValueLogged} />
         </div>
       )}
       <div className="lo-habit-detail-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+        {/* Edit button */}
+        <button
+          onClick={onEdit}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            height: 28, padding: '0 10px',
+            background: 'transparent', color: 'var(--lo-text-dim)',
+            border: '1px solid transparent', borderRadius: 6,
+            fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--lo-surface)';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--lo-border)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent';
+          }}
+        >
+          <Icon name="edit" size={12} /> Edytuj
+        </button>
         {!confirm ? (
           <button
             onClick={() => setConfirm(true)}
@@ -158,10 +301,11 @@ function HabitDetail({ h, range, onDelete, onValueLogged }: {
 }
 
 /* ─── HabitListRow ─────────────────────────────────────────────────────────── */
-function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle, onValueLogged }: {
+function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle, onValueLogged, onEdit }: {
   h: HabitFull; isOpen: boolean; range: DateRange; onToggle: () => void; onDelete: (id: string) => void;
   onTodayToggle: (id: string, done: boolean) => void;
   onValueLogged: (id: string, value: number | null) => void;
+  onEdit: (h: HabitFull) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [toggling, startToggle] = useTransition();
@@ -190,7 +334,7 @@ function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle, onV
             <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 11, color: 'var(--lo-text-faint)', marginTop: 2, display: 'flex', gap: 8 }}>
               <span>{h.freq}</span>
               {h.unit && h.todayValue !== null && (
-                <span style={{ color: 'var(--lo-accent)' }}>{h.todayValue} {h.unit}</span>
+                <span style={{ color: 'var(--lo-accent)' }}>{fmtValue(h.todayValue, h.unit)}</span>
               )}
             </div>
           </div>
@@ -237,7 +381,7 @@ function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle, onV
       >
         <Icon name="check" size={13} />
       </button>
-      {isOpen && <HabitDetail h={h} range={range} onDelete={onDelete} onValueLogged={onValueLogged} />}
+      {isOpen && <HabitDetail h={h} range={range} onDelete={onDelete} onValueLogged={onValueLogged} onEdit={() => onEdit(h)} />}
     </div>
   );
 }
@@ -247,6 +391,7 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
   const [habits, setHabits] = useState<HabitFull[]>(initialHabits);
   const [open, setOpen] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editHabit, setEditHabit] = useState<HabitFull | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const [range, setRange] = useState<DateRange>(90);
   const [loadingRange, startRange] = useTransition();
@@ -275,12 +420,23 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
     setHabits(prev => prev.map(h => h.id === id ? { ...h, todayValue: value, todayDone: true } : h));
   };
 
+  const handleUpdated = (updated: HabitFull) => {
+    setHabits(prev => prev.map(h => h.id === updated.id ? { ...h, ...updated } : h));
+    setEditHabit(null);
+  };
+
   return (
     <>
       <AddHabitDialog
         open={addOpen}
         onOpenChange={setAddOpen}
         onAdded={habit => setHabits(prev => [...prev, habit])}
+      />
+      <AddHabitDialog
+        open={!!editHabit}
+        onOpenChange={v => { if (!v) setEditHabit(null); }}
+        existing={editHabit ?? undefined}
+        onUpdated={handleUpdated}
       />
       <div className="lo-screen" style={{ padding: '20px 24px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {/* Header */}
@@ -344,6 +500,7 @@ export function HabitsScreen({ initialHabits = [] }: { initialHabits?: HabitFull
               onDelete={handleDelete}
               onTodayToggle={handleTodayToggle}
               onValueLogged={handleValueLogged}
+              onEdit={h => setEditHabit(h)}
             />
           ))}
         </div>

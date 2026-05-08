@@ -228,6 +228,7 @@ export function JournalScreen({ initialEntries = [] }: { initialEntries?: Journa
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDate, setDialogDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [search, setSearch] = useState('');
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -316,7 +317,7 @@ export function JournalScreen({ initialEntries = [] }: { initialEntries?: Journa
         maxWidth: 1280, margin: '0 auto', width: '100%',
       }}>
         {/* Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className={mobileView === 'detail' ? 'lo-journal-list' : undefined} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div className="label-eyebrow">Dziennik</div>
@@ -379,18 +380,35 @@ export function JournalScreen({ initialEntries = [] }: { initialEntries?: Journa
             <EntryList
               entries={filtered}
               selectedId={selected?.id ?? null}
-              onSelect={e => { setSelectedId(e.id); openDialog(e.date); }}
+              onSelect={e => { setSelectedId(e.id); setMobileView('detail'); openDialog(e.date); }}
             />
           )}
         </div>
 
         {/* Detail */}
         {selected && (
-          <EntryDetail
-            e={selected}
-            onEdit={openSelected}
-            onDelete={handleDelete}
-          />
+          <div className={mobileView === 'list' ? 'lo-journal-detail' : undefined}>
+            {/* Mobile back button */}
+            <button
+              className="lo-journal-back"
+              onClick={() => setMobileView('list')}
+              style={{
+                display: 'none',
+                alignItems: 'center', gap: 6,
+                marginBottom: 12,
+                background: 'transparent', border: 'none',
+                color: 'var(--lo-accent)', fontSize: 13,
+                cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+              }}
+            >
+              ← Wróć do listy
+            </button>
+            <EntryDetail
+              e={selected}
+              onEdit={openSelected}
+              onDelete={handleDelete}
+            />
+          </div>
         )}
       </div>
     </>

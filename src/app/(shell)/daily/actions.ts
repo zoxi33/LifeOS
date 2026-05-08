@@ -15,7 +15,7 @@ export interface DayData {
   workMinutes: number;
   waterMl: number;
   waterTargetMl: number;
-  habits: { id: string; name: string; done: boolean }[];
+  habits: { id: string; name: string; done: boolean; unit?: string; value?: number | null }[];
   sleepHours: number | null;
   weightKg: number | null;
   mood: number | null;
@@ -70,9 +70,12 @@ export async function getWeekData(weekOffset: number): Promise<{
   since365.setDate(since365.getDate() - 365);
   const since365Str = since365.toISOString().slice(0, 10);
 
+  type RawHabit = { id: string; name: string; unit: string | null };
+  type RawHabitLog = { habit_id: string; date: string; done: boolean; value_numeric: number | null };
+
   const [habitsRes, logsRes, focusRes, sleepRes, weightRes, journalRes, checklistDefsRes, historyRes, waterRes] = await Promise.all([
-    sb.from('habits').select('id, name').eq('active', true).order('created_at'),
-    sb.from('habit_logs').select('habit_id, date, done').gte('date', start).lte('date', end),
+    sb.from('habits').select('id, name, unit').eq('active', true).order('created_at'),
+    sb.from('habit_logs').select('habit_id, date, done, value_numeric').gte('date', start).lte('date', end),
     sb.from('daily_logs').select('date, focus_minutes, work_minutes, checklist').gte('date', start).lte('date', end),
     sb.from('sleep_logs').select('date, hours').gte('date', start).lte('date', end),
     sb.from('weight_logs').select('measured_at, weight_kg').gte('measured_at', start).lte('measured_at', end + 'T23:59:59'),
@@ -82,8 +85,8 @@ export async function getWeekData(weekOffset: number): Promise<{
     sb.from('water_logs').select('date, ml, target_ml').gte('date', start).lte('date', end),
   ]);
 
-  const habits = habitsRes.data ?? [];
-  const logs = logsRes.data ?? [];
+  const habits = (habitsRes.data ?? []) as unknown as RawHabit[];
+  const logs = (logsRes.data ?? []) as unknown as RawHabitLog[];
   const focusMap = Object.fromEntries((focusRes.data ?? []).map(r => [String(r.date), {
     minutes: r.focus_minutes,
     workMinutes: r.work_minutes ?? 0,
@@ -126,7 +129,10 @@ export async function getWeekData(weekOffset: number): Promise<{
       workMinutes: focusEntry?.workMinutes ?? 0,
       waterMl: waterMap[date]?.ml ?? 0,
       waterTargetMl: waterMap[date]?.targetMl ?? 3000,
-      habits: habits.map(h => ({ id: h.id, name: h.name, done: doneSet.has(h.id) })),
+      habits: habits.map(h => {
+        const dayLog = dayLogs.find(l => l.habit_id === h.id);
+        return { id: h.id, name: h.name, done: doneSet.has(h.id), unit: h.unit ?? undefined, value: dayLog?.value_numeric ?? null };
+      }),
       sleepHours: sleepMap[date] ?? null,
       weightKg: weightMap[date] ?? null,
       mood: moodMap[date] ?? null,
@@ -199,6 +205,14 @@ export async function toggleStreakFlag(id: string, isStreak: boolean) {
   const sb = await createClient();
   await sb.from('checklist_items').update({ is_streak: isStreak }).eq('id', id);
   revalidatePath('/daily');
+}
+
+export async function setWaterForDate(date: string, ml: number, targetMl: number) {
+  const sb = await createClient();
+  await sb.from('water_logs').upsert({ date, ml: Math.max(0, ml), target_ml: targetMl }, { onConflict: 'date' });
+  revalidatePath('/daily');
+  revalidatePath('/today');
+  revalidatePath('/water');
 }
 
 export async function getFocusSeries(): Promise<{ date: string; minutes: number }[]> {

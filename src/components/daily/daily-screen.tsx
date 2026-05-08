@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useTransition, useOptimistic, useCallback, useRef } from 'react';
+import React, { useState, useTransition, useOptimistic, useCallback, useRef, useEffect } from 'react';
 import { Icon } from '@/components/primitives/icon';
 import {
   upsertFocus, upsertWork, toggleHabitForDate, toggleChecklistItem,
   addChecklistItem, deleteChecklistItem, toggleStreakFlag, getWeekData,
-  reorderChecklistItems,
+  reorderChecklistItems, setWaterForDate,
 } from '@/app/(shell)/daily/actions';
+import { logHabitValue } from '@/app/(shell)/habits/actions';
 import { streakBreakPenalty, nextStreakMilestone } from '@/lib/streak-utils';
 import { StreaksSection } from '@/components/streaks/streaks-section';
 import { fmtWaterShort } from '@/lib/water-utils';
@@ -38,6 +39,20 @@ function fmtMinutes(m: number): string {
 function moodEmoji(m: number | null) {
   if (!m) return '—';
   return ['', '😞', '😕', '😐', '🙂', '😄'][m] ?? '—';
+}
+
+function isTimeUnit(unit: string): boolean {
+  return /^(min|minut[ay]?|godzin[ay]?|h|hr)$/i.test(unit.trim());
+}
+
+function fmtHabitValue(value: number, unit: string): string {
+  if (isTimeUnit(unit)) {
+    const h = Math.floor(value / 60), m = value % 60;
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  }
+  return `${value} ${unit}`;
 }
 
 // ─── HabitChip ───────────────────────────────────────────────────────────────
@@ -246,7 +261,7 @@ function ChecklistChip({ itemId, date, name, done: init, onDelete, onMarkStreak 
 
 // ─── FocusInput ───────────────────────────────────────────────────────────────
 
-function FocusInput({ date, minutes: init }: { date: string; minutes: number }) {
+function FocusInput({ date, minutes: init, onSaved }: { date: string; minutes: number; onSaved?: (m: number) => void }) {
   const h = Math.floor(init / 60), m = init % 60;
   const [hours, setHours] = useState(h > 0 ? String(h) : '');
   const [mins, setMins] = useState(m > 0 ? String(m) : '');
@@ -258,7 +273,7 @@ function FocusInput({ date, minutes: init }: { date: string; minutes: number }) 
 
   const save = () => {
     const t = Math.max(0, total);
-    start(async () => { await upsertFocus(date, t); setSaved(true); setTimeout(() => setSaved(false), 1500); });
+    start(async () => { await upsertFocus(date, t); setSaved(true); onSaved?.(t); setTimeout(() => setSaved(false), 1500); });
   };
 
   return (
@@ -289,7 +304,7 @@ function FocusInput({ date, minutes: init }: { date: string; minutes: number }) 
 
 // ─── WorkInput ────────────────────────────────────────────────────────────────
 
-function WorkInput({ date, minutes: init }: { date: string; minutes: number }) {
+function WorkInput({ date, minutes: init, onSaved }: { date: string; minutes: number; onSaved?: (m: number) => void }) {
   const h = Math.floor(init / 60), m = init % 60;
   const [hours, setHours] = useState(h > 0 ? String(h) : '');
   const [mins, setMins] = useState(m > 0 ? String(m) : '');
@@ -301,7 +316,7 @@ function WorkInput({ date, minutes: init }: { date: string; minutes: number }) {
 
   const save = () => {
     const t = Math.max(0, total);
-    start(async () => { await upsertWork(date, t); setSaved(true); setTimeout(() => setSaved(false), 1500); });
+    start(async () => { await upsertWork(date, t); setSaved(true); onSaved?.(t); setTimeout(() => setSaved(false), 1500); });
   };
 
   return (
@@ -601,14 +616,211 @@ function TodaySection({
   );
 }
 
+// ─── HabitValueEditor ────────────────────────────────────────────────────────
+
+function HabitValueEditor({ habitId, date, unit, value: initValue, onSaved }: {
+  habitId: string; date: string; unit: string; value: number | null;
+  onSaved: (v: number | null) => void;
+}) {
+  const isTime = isTimeUnit(unit);
+  const initH = isTime && initValue ? Math.floor(initValue / 60) : 0;
+  const initM = isTime && initValue ? initValue % 60 : 0;
+  const [hours, setHours] = useState(initH > 0 ? String(initH) : '');
+  const [mins, setMins] = useState(initM > 0 ? String(initM) : '');
+  const [numVal, setNumVal] = useState(!isTime && initValue != null ? String(initValue) : '');
+  const [saved, setSaved] = useState(false);
+  const [, start] = useTransition();
+
+  const total = isTime
+    ? (parseInt(hours || '0') * 60) + parseInt(mins || '0')
+    : parseFloat(numVal || '0') || 0;
+
+  const save = () => {
+    const v = total > 0 ? total : null;
+    start(async () => {
+      await logHabitValue(habitId, date, v);
+      setSaved(true);
+      onSaved(v);
+      setTimeout(() => setSaved(false), 1500);
+    });
+  };
+
+  const btnStyle: React.CSSProperties = {
+    height: 34, padding: '0 14px',
+    background: saved ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+    color: saved ? 'var(--lo-accent)' : 'var(--lo-text-muted)',
+    border: '1px solid ' + (saved ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
+    borderRadius: 8, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer',
+  };
+
+  const inputStyle: React.CSSProperties = {
+    height: 36, textAlign: 'center', background: 'var(--lo-bg-2)',
+    border: '1px solid var(--lo-border)', borderRadius: 8, color: 'var(--lo-text)',
+    fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 14,
+  };
+
+  if (isTime) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input type="number" min={0} max={23} placeholder="0" value={hours}
+            onChange={e => setHours(e.target.value)} onKeyDown={e => e.key === 'Enter' && save()}
+            style={{ ...inputStyle, width: 52 }} />
+          <span style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>h</span>
+          <input type="number" min={0} max={59} placeholder="0" value={mins}
+            onChange={e => setMins(e.target.value)} onKeyDown={e => e.key === 'Enter' && save()}
+            style={{ ...inputStyle, width: 52 }} />
+          <span style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>min</span>
+        </div>
+        {total > 0 && <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 12, color: 'var(--lo-accent)' }}>= {fmtMinutes(total)}</span>}
+        <button onClick={save} style={btnStyle}>{saved ? '✓ Zapisano' : 'Zapisz'}</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <input type="number" min={0} placeholder="0" value={numVal}
+        onChange={e => setNumVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && save()}
+        style={{ ...inputStyle, width: 80 }} />
+      <span style={{ fontSize: 12, color: 'var(--lo-text-faint)' }}>{unit}</span>
+      <button onClick={save} style={btnStyle}>{saved ? '✓ Zapisano' : 'Zapisz'}</button>
+    </div>
+  );
+}
+
+// ─── WaterInlineEditor ───────────────────────────────────────────────────────
+
+function WaterInlineEditor({ date, ml, targetMl, onChange }: {
+  date: string; ml: number; targetMl: number; onChange: (ml: number) => void;
+}) {
+  const [, start] = useTransition();
+  const adjust = (amount: number) => {
+    const next = Math.max(0, ml + amount);
+    onChange(next);
+    start(async () => { await setWaterForDate(date, next, targetMl); });
+  };
+  const pct = Math.min(100, Math.round((ml / targetMl) * 100));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 14, fontWeight: 500 }}>
+          {fmtWaterShort(ml)} <span style={{ color: 'var(--lo-text-faint)', fontWeight: 400 }}>/ {fmtWaterShort(targetMl)}</span>
+        </span>
+        <span style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 12, color: pct >= 100 ? 'var(--lo-info)' : 'var(--lo-text-muted)' }}>{pct}%</span>
+      </div>
+      <div style={{ height: 4, background: 'var(--lo-surface-2)', borderRadius: 99, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--lo-info)', borderRadius: 99, transition: 'width .2s' }} />
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {[250, 500, 750].map(amt => (
+          <button key={amt} onClick={() => adjust(amt)} style={{
+            height: 32, padding: '0 12px', borderRadius: 8,
+            background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)',
+            color: 'var(--lo-info)', fontFamily: 'var(--font-geist-mono)', fontSize: 12, cursor: 'pointer',
+          }}>+{amt}ml</button>
+        ))}
+        {ml > 0 && (
+          <button onClick={() => adjust(-250)} style={{
+            height: 32, padding: '0 12px', borderRadius: 8,
+            background: 'transparent', border: '1px solid var(--lo-border)',
+            color: 'var(--lo-text-dim)', fontFamily: 'var(--font-geist-mono)', fontSize: 12, cursor: 'pointer',
+          }}>−250ml</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── WeekDayDetail ────────────────────────────────────────────────────────────
 
-function WeekDayDetail({ day, streakCounts }: { day: DayData; streakCounts: Record<string, number> }) {
-  const doneDone = day.habits.filter(h => h.done).length;
-  const streakItems  = day.checklist.filter(i => i.isStreak);
-  const regularItems = day.checklist.filter(i => !i.isStreak);
+function WeekDayDetail({ day: initialDay, streakCounts, onChecklistDelete, onStreakToggle }: {
+  day: DayData;
+  streakCounts: Record<string, number>;
+  onChecklistDelete: (id: string) => void;
+  onStreakToggle: (id: string, isStreak: boolean) => void;
+}) {
+  const [habits, setHabits] = useState(initialDay.habits);
+  const [checklist, setChecklist] = useState(initialDay.checklist);
+  const [focusMin, setFocusMin] = useState(initialDay.focusMinutes);
+  const [workMin, setWorkMin] = useState(initialDay.workMinutes);
+  const [waterMl, setWaterMl] = useState(initialDay.waterMl);
+  const [habitValues, setHabitValues] = useState<Record<string, number | null>>(
+    Object.fromEntries(initialDay.habits.map(h => [h.id, h.value ?? null]))
+  );
+  const [activeCell, setActiveCell] = useState<string | null>(null);
+  const [manageMode, setManageMode] = useState(false);
+  const [, start] = useTransition();
+  const today = todayIso();
+  const isToday = initialDay.date === today;
 
-  const cell = (bg: string, border: string): React.CSSProperties => ({
+  useEffect(() => {
+    setHabits(initialDay.habits);
+    setChecklist(initialDay.checklist);
+    setFocusMin(initialDay.focusMinutes);
+    setWorkMin(initialDay.workMinutes);
+    setWaterMl(initialDay.waterMl);
+    setHabitValues(Object.fromEntries(initialDay.habits.map(h => [h.id, h.value ?? null])));
+    setActiveCell(null);
+    setManageMode(false);
+  }, [initialDay.date]);
+
+  const toggleHabit = (habitId: string) => {
+    const h = habits.find(h => h.id === habitId);
+    if (!h) return;
+    const next = !h.done;
+    setHabits(prev => prev.map(x => x.id === habitId ? { ...x, done: next } : x));
+    start(async () => { await toggleHabitForDate(habitId, initialDay.date, next); });
+  };
+
+  const toggleCl = (itemId: string) => {
+    const item = checklist.find(i => i.id === itemId);
+    if (!item) return;
+    const next = !item.done;
+    setChecklist(prev => prev.map(i => i.id === itemId ? { ...i, done: next } : i));
+    start(async () => { await toggleChecklistItem(initialDay.date, itemId, next); });
+  };
+
+  const deleteCl = (id: string) => {
+    setChecklist(prev => prev.filter(i => i.id !== id));
+    start(async () => { await deleteChecklistItem(id); onChecklistDelete(id); });
+  };
+
+  const markStreak = (id: string) => {
+    setChecklist(prev => prev.map(i => i.id === id ? { ...i, isStreak: true } : i));
+    start(async () => { await toggleStreakFlag(id, true); onStreakToggle(id, true); });
+  };
+
+  const unmarkStreak = (id: string) => {
+    setChecklist(prev => prev.map(i => i.id === id ? { ...i, isStreak: false } : i));
+    start(async () => { await toggleStreakFlag(id, false); onStreakToggle(id, false); });
+  };
+
+  const moveItem = (idx: number, dir: -1 | 1) => {
+    const regular = checklist.filter(i => !i.isStreak);
+    const newRegular = [...regular];
+    const target = idx + dir;
+    if (target < 0 || target >= newRegular.length) return;
+    [newRegular[idx], newRegular[target]] = [newRegular[target], newRegular[idx]];
+    const streakItems = checklist.filter(i => i.isStreak);
+    const full = [...streakItems, ...newRegular];
+    setChecklist(full);
+    start(async () => { await reorderChecklistItems(full.map(i => i.id)); });
+  };
+
+  const streakItems  = checklist.filter(i => i.isStreak);
+  const regularItems = checklist.filter(i => !i.isStreak);
+  const doneDone = habits.filter(h => h.done).length;
+
+  const btnCell = (bg: string, border: string, active?: boolean): React.CSSProperties => ({
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+    padding: '14px 12px', background: active ? 'color-mix(in oklch, ' + bg + ' 80%, var(--lo-bg))' : bg,
+    border: '2px solid ' + (active ? 'var(--lo-accent)' : border),
+    borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+    transition: 'opacity .1s, border-color .1s',
+  });
+
+  const staticCell = (bg: string, border: string): React.CSSProperties => ({
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
     padding: '14px 12px', background: bg,
     border: '1px solid ' + border, borderRadius: 10,
@@ -618,117 +830,223 @@ function WeekDayDetail({ day, streakCounts }: { day: DayData; streakCounts: Reco
     <div style={{ padding: '4px 0' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 10, padding: '2px 0 8px' }}>
 
-        {/* Focus */}
-        <div style={cell(
-          day.focusMinutes > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
-          day.focusMinutes > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)',
+        {/* Focus — clickable */}
+        <button onClick={() => setActiveCell(activeCell === 'focus' ? null : 'focus')} style={btnCell(
+          focusMin > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+          focusMin > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)',
+          activeCell === 'focus',
         )}>
           <div style={{ fontSize: 18 }}>🌲</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.focusMinutes > 0 ? 'var(--lo-accent)' : 'var(--lo-text-dim)' }}>{fmtMinutes(day.focusMinutes)}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: focusMin > 0 ? 'var(--lo-accent)' : 'var(--lo-text-dim)' }}>{fmtMinutes(focusMin)}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>focus</div>
-        </div>
+        </button>
 
-        {/* Work */}
-        <div style={cell(
-          day.workMinutes > 0 ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
-          day.workMinutes > 0 ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+        {/* Work — clickable */}
+        <button onClick={() => setActiveCell(activeCell === 'work' ? null : 'work')} style={btnCell(
+          workMin > 0 ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
+          workMin > 0 ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+          activeCell === 'work',
         )}>
           <div style={{ fontSize: 18 }}>💼</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.workMinutes > 0 ? 'var(--lo-info)' : 'var(--lo-text-dim)' }}>{fmtMinutes(day.workMinutes)}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: workMin > 0 ? 'var(--lo-info)' : 'var(--lo-text-dim)' }}>{fmtMinutes(workMin)}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>praca</div>
-        </div>
+        </button>
 
-        {/* Water */}
-        <div style={cell(
-          day.waterMl >= day.waterTargetMl ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
-          day.waterMl >= day.waterTargetMl ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+        {/* Water — clickable */}
+        <button onClick={() => setActiveCell(activeCell === 'water' ? null : 'water')} style={btnCell(
+          waterMl >= initialDay.waterTargetMl ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
+          waterMl >= initialDay.waterTargetMl ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+          activeCell === 'water',
         )}>
           <div style={{ fontSize: 18 }}>💧</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.waterMl >= day.waterTargetMl ? 'var(--lo-info)' : day.waterMl > 0 ? 'var(--lo-text-muted)' : 'var(--lo-text-dim)' }}>{fmtWaterShort(day.waterMl)}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: waterMl >= initialDay.waterTargetMl ? 'var(--lo-info)' : waterMl > 0 ? 'var(--lo-text-muted)' : 'var(--lo-text-dim)' }}>{fmtWaterShort(waterMl)}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>woda</div>
-        </div>
+        </button>
 
-        {/* Streak items */}
+        {/* Streak items — toggleable */}
         {streakItems.map(item => (
-          <div key={item.id} style={cell(
+          <button key={item.id} onClick={() => toggleCl(item.id)} style={btnCell(
             item.done ? 'color-mix(in oklch, var(--lo-warn) 14%, transparent)' : streakCounts[item.id] > 0 ? 'color-mix(in oklch, var(--lo-warn) 6%, transparent)' : 'var(--lo-surface-2)',
             item.done ? 'var(--lo-warn)' : streakCounts[item.id] > 0 ? 'color-mix(in oklch, var(--lo-warn) 35%, transparent)' : 'var(--lo-border)',
           )}>
             <div style={{ fontSize: 16 }}>{item.done ? '🔥' : '○'}</div>
             <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 18, fontWeight: 700, lineHeight: 1, color: item.done ? 'var(--lo-warn)' : 'var(--lo-text-dim)' }}>{streakCounts[item.id] ?? 0}</div>
             <div style={{ fontSize: 10, color: item.done ? 'var(--lo-warn)' : 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)', textAlign: 'center', lineHeight: 1.2 }}>{item.name}</div>
-          </div>
+            {isToday && (
+              <button onClick={e => { e.stopPropagation(); unmarkStreak(item.id); }} title="Usuń ze streakow" style={{ marginTop: 2, fontSize: 9, color: 'var(--lo-text-dim)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>✕ streak</button>
+            )}
+          </button>
         ))}
 
         {/* Habit cells */}
-        {day.habits.map(h => (
-          <div key={h.id} style={cell(
-            h.done ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
-            h.done ? 'var(--lo-accent-line)' : 'var(--lo-border)',
-          )}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: h.done ? 'var(--lo-accent)' : 'transparent', border: '1px solid ' + (h.done ? 'var(--lo-accent)' : 'var(--lo-border-strong)'), display: 'grid', placeItems: 'center' }}>
-              {h.done && <Icon name="check" size={13} style={{ color: 'var(--lo-bg)' }} />}
-            </div>
-            <div style={{ fontSize: 11, textAlign: 'center', color: h.done ? 'var(--lo-accent)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{h.name}</div>
+        {habits.map(h => {
+          const hasUnit = !!h.unit;
+          const val = habitValues[h.id] ?? null;
+          const isOpen = activeCell === h.id;
+          const handleClick = () => {
+            if (hasUnit) setActiveCell(isOpen ? null : h.id);
+            else toggleHabit(h.id);
+          };
+          return (
+            <button key={h.id} onClick={handleClick} style={btnCell(
+              h.done ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+              h.done ? 'var(--lo-accent-line)' : 'var(--lo-border)',
+              isOpen,
+            )}>
+              {hasUnit ? (
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: val != null ? 'var(--lo-accent)' : 'var(--lo-text-dim)', minHeight: 20, display: 'flex', alignItems: 'center' }}>
+                  {val != null ? fmtHabitValue(val, h.unit!) : '—'}
+                </div>
+              ) : (
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: h.done ? 'var(--lo-accent)' : 'transparent', border: '1px solid ' + (h.done ? 'var(--lo-accent)' : 'var(--lo-border-strong)'), display: 'grid', placeItems: 'center' }}>
+                  {h.done && <Icon name="check" size={13} style={{ color: 'var(--lo-bg)' }} />}
+                </div>
+              )}
+              <div style={{ fontSize: 11, textAlign: 'center', color: h.done ? 'var(--lo-accent)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{h.name}</div>
+              {hasUnit && h.unit && (
+                <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>{h.unit}</div>
+              )}
+            </button>
+          );
+        })}
+
+        {/* Regular checklist cells — toggleable */}
+        {!manageMode && regularItems.map(item => (
+          <div key={item.id} style={{ position: 'relative' }}>
+            <button onClick={() => toggleCl(item.id)} style={btnCell(
+              item.done ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
+              item.done ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
+            )}>
+              <div style={{ width: 28, height: 28, borderRadius: 7, background: item.done ? 'var(--lo-info)' : 'transparent', border: '1px solid ' + (item.done ? 'var(--lo-info)' : 'var(--lo-border-strong)'), display: 'grid', placeItems: 'center' }}>
+                {item.done && <Icon name="check" size={13} style={{ color: 'var(--lo-bg)' }} />}
+              </div>
+              <div style={{ fontSize: 11, textAlign: 'center', color: item.done ? 'var(--lo-info)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{item.name}</div>
+              {isToday && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+                  <button onClick={e => { e.stopPropagation(); markStreak(item.id); }} title="Oznacz jako streak" style={{ fontSize: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--lo-warn)', padding: 0 }}>🔥</button>
+                  <button onClick={e => { e.stopPropagation(); deleteCl(item.id); }} title="Usuń" style={{ fontSize: 9, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--lo-text-dim)', padding: 0 }}>✕</button>
+                </div>
+              )}
+            </button>
           </div>
         ))}
 
-        {/* Regular checklist cells */}
-        {regularItems.map(item => (
-          <div key={item.id} style={cell(
-            item.done ? 'color-mix(in oklch, var(--lo-info) 10%, transparent)' : 'var(--lo-surface-2)',
-            item.done ? 'color-mix(in oklch, var(--lo-info) 35%, transparent)' : 'var(--lo-border)',
-          )}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: item.done ? 'var(--lo-info)' : 'transparent', border: '1px solid ' + (item.done ? 'var(--lo-info)' : 'var(--lo-border-strong)'), display: 'grid', placeItems: 'center' }}>
-              {item.done && <Icon name="check" size={13} style={{ color: 'var(--lo-bg)' }} />}
-            </div>
-            <div style={{ fontSize: 11, textAlign: 'center', color: item.done ? 'var(--lo-info)' : 'var(--lo-text-muted)', lineHeight: 1.3 }}>{item.name}</div>
-          </div>
-        ))}
-
-        {/* Sleep */}
-        <div style={cell('var(--lo-surface-2)', 'var(--lo-border)')}>
+        {/* Sleep — static */}
+        <div style={staticCell('var(--lo-surface-2)', 'var(--lo-border)')}>
           <div style={{ fontSize: 18 }}>😴</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: day.sleepHours != null && day.sleepHours >= 7 ? 'var(--lo-accent)' : 'var(--lo-text)' }}>{day.sleepHours != null ? `${day.sleepHours}h` : '—'}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: initialDay.sleepHours != null && initialDay.sleepHours >= 7 ? 'var(--lo-accent)' : 'var(--lo-text)' }}>{initialDay.sleepHours != null ? `${initialDay.sleepHours}h` : '—'}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>sen</div>
         </div>
 
-        {/* Weight */}
-        <div style={cell('var(--lo-surface-2)', 'var(--lo-border)')}>
+        {/* Weight — static */}
+        <div style={staticCell('var(--lo-surface-2)', 'var(--lo-border)')}>
           <div style={{ fontSize: 18 }}>⚖️</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500 }}>{day.weightKg != null ? `${day.weightKg}kg` : '—'}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500 }}>{initialDay.weightKg != null ? `${initialDay.weightKg}kg` : '—'}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>waga</div>
         </div>
 
-        {/* Mood */}
-        <div style={cell('var(--lo-surface-2)', 'var(--lo-border)')}>
-          <div style={{ fontSize: 20 }}>{moodEmoji(day.mood)}</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500 }}>{day.mood != null ? `${day.mood}/5` : '—'}</div>
+        {/* Mood — static */}
+        <div style={staticCell('var(--lo-surface-2)', 'var(--lo-border)')}>
+          <div style={{ fontSize: 20 }}>{moodEmoji(initialDay.mood)}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500 }}>{initialDay.mood != null ? `${initialDay.mood}/5` : '—'}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>nastrój</div>
         </div>
 
         {/* Summary */}
-        <div style={cell(
-          doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
-          doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)',
+        <div style={staticCell(
+          doneDone === habits.length && habits.length > 0 ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
+          doneDone === habits.length && habits.length > 0 ? 'var(--lo-accent-line)' : 'var(--lo-border)',
         )}>
           <div style={{ fontSize: 18 }}>✓</div>
-          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: doneDone === day.habits.length && day.habits.length > 0 ? 'var(--lo-accent)' : 'var(--lo-text)' }}>{doneDone}/{day.habits.length}</div>
+          <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 13, fontWeight: 500, color: doneDone === habits.length && habits.length > 0 ? 'var(--lo-accent)' : 'var(--lo-text)' }}>{doneDone}/{habits.length}</div>
           <div style={{ fontSize: 10, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>nawyki</div>
         </div>
 
       </div>
+
+      {/* Inline editors — habit value */}
+      {habits.filter(h => h.unit && activeCell === h.id).map(h => (
+        <div key={h.id} style={{ marginTop: 10, padding: '14px 16px', background: 'var(--lo-bg-2)', borderRadius: 10, border: '1px solid var(--lo-accent-line)' }}>
+          <div style={{ fontSize: 11, color: 'var(--lo-text-muted)', marginBottom: 10 }}>{h.name} — {h.unit}</div>
+          <HabitValueEditor
+            habitId={h.id}
+            date={initialDay.date}
+            unit={h.unit!}
+            value={habitValues[h.id] ?? null}
+            onSaved={v => {
+              setHabitValues(prev => ({ ...prev, [h.id]: v }));
+              setHabits(prev => prev.map(x => x.id === h.id ? { ...x, done: v != null && v > 0 } : x));
+              setActiveCell(null);
+            }}
+          />
+        </div>
+      ))}
+
+      {/* Inline editors */}
+      {activeCell === 'focus' && (
+        <div style={{ marginTop: 10, padding: '14px 16px', background: 'var(--lo-bg-2)', borderRadius: 10, border: '1px solid var(--lo-accent-line)' }}>
+          <div style={{ fontSize: 11, color: 'var(--lo-text-muted)', marginBottom: 10 }}>🌲 Czas focus</div>
+          <FocusInput date={initialDay.date} minutes={focusMin} onSaved={m => { setFocusMin(m); setActiveCell(null); }} />
+        </div>
+      )}
+      {activeCell === 'work' && (
+        <div style={{ marginTop: 10, padding: '14px 16px', background: 'var(--lo-bg-2)', borderRadius: 10, border: '1px solid color-mix(in oklch, var(--lo-info) 35%, transparent)' }}>
+          <div style={{ fontSize: 11, color: 'var(--lo-text-muted)', marginBottom: 10 }}>💼 Godziny pracy</div>
+          <WorkInput date={initialDay.date} minutes={workMin} onSaved={m => { setWorkMin(m); setActiveCell(null); }} />
+        </div>
+      )}
+      {activeCell === 'water' && (
+        <div style={{ marginTop: 10, padding: '14px 16px', background: 'var(--lo-bg-2)', borderRadius: 10, border: '1px solid color-mix(in oklch, var(--lo-info) 35%, transparent)' }}>
+          <div style={{ fontSize: 11, color: 'var(--lo-text-muted)', marginBottom: 10 }}>💧 Nawodnienie</div>
+          <WaterInlineEditor date={initialDay.date} ml={waterMl} targetMl={initialDay.waterTargetMl} onChange={setWaterMl} />
+        </div>
+      )}
+
+      {/* Manage mode — reorder */}
+      {manageMode && isToday && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {regularItems.map((item, idx) => (
+            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'var(--lo-surface-2)', border: '1px solid var(--lo-border)', borderRadius: 8 }}>
+              <div style={{ flex: 1, fontSize: 13 }}>{item.name}</div>
+              <div style={{ display: 'flex', gap: 2 }}>
+                <button disabled={idx === 0} onClick={() => moveItem(idx, -1)} style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 5, background: 'transparent', border: 'none', color: idx === 0 ? 'var(--lo-text-dim)' : 'var(--lo-text-muted)', cursor: idx === 0 ? 'default' : 'pointer' }}><Icon name="arrow-up" size={12} /></button>
+                <button disabled={idx === regularItems.length - 1} onClick={() => moveItem(idx, 1)} style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 5, background: 'transparent', border: 'none', color: idx === regularItems.length - 1 ? 'var(--lo-text-dim)' : 'var(--lo-text-muted)', cursor: idx === regularItems.length - 1 ? 'default' : 'pointer' }}><Icon name="arrow-down" size={12} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom toolbar — add item + manage (today only) */}
+      {isToday && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <AddChecklistForm onAdded={name => {
+            setChecklist(prev => [...prev, { id: `tmp-${Date.now()}`, name, done: false, isStreak: false }]);
+          }} />
+          {regularItems.length > 1 && (
+            <button onClick={() => setManageMode(m => !m)} style={{
+              height: 38, padding: '0 12px', borderRadius: 999,
+              background: manageMode ? 'var(--lo-accent-soft)' : 'transparent',
+              color: manageMode ? 'var(--lo-accent)' : 'var(--lo-text-dim)',
+              border: '1px solid ' + (manageMode ? 'var(--lo-accent-line)' : 'var(--lo-border)'),
+              fontSize: 12, fontFamily: 'inherit', cursor: 'pointer',
+            }}>{manageMode ? 'Gotowe' : 'Kolejność'}</button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── WeekSection ─────────────────────────────────────────────────────────────
 
-function WeekSection({ week, weekOffset, streakCounts, onNavigate }: {
+function WeekSection({ week, weekOffset, streakCounts, onNavigate, onChecklistDelete, onStreakToggle }: {
   week: DayData[];
   weekOffset: number;
   streakCounts: Record<string, number>;
   onNavigate: (delta: number) => void;
+  onChecklistDelete: (id: string) => void;
+  onStreakToggle: (id: string, isStreak: boolean) => void;
 }) {
   const today = todayIso();
   const defaultSel = week.find(d => d.date === today)?.date ?? week[0]?.date ?? '';
@@ -801,7 +1119,13 @@ function WeekSection({ week, weekOffset, streakCounts, onNavigate }: {
             <div style={{ fontSize: 12, color: 'var(--lo-text-faint)', marginBottom: 12, fontFamily: 'var(--font-geist-mono)' }}>
               {PL_DAYS_LONG[parseDateLocal(selectedDay.date).dow]} · {parseDateLocal(selectedDay.date).day} {PL_MONTHS[parseDateLocal(selectedDay.date).month]}
             </div>
-            <WeekDayDetail day={selectedDay} streakCounts={streakCounts} />
+            <WeekDayDetail
+              key={selectedDay.date}
+              day={selectedDay}
+              streakCounts={streakCounts}
+              onChecklistDelete={onChecklistDelete}
+              onStreakToggle={onStreakToggle}
+            />
           </>
         )}
       </div>
@@ -856,25 +1180,12 @@ export function DailyScreen({
     }
   };
 
-  const handleChecklistReorder = (newOrder: { id: string; name: string; done: boolean; isStreak: boolean }[]) => {
-    const date = todayData?.date;
-    if (!date) return;
-    setWeek(prev => prev.map(d => d.date === date ? { ...d, checklist: newOrder } : d));
-  };
-
   if (!todayData) return (
     <div style={{ padding: '40px 24px', color: 'var(--lo-text-muted)', fontSize: 13 }}>Ładowanie…</div>
   );
 
   return (
     <div className="lo-screen" style={{ padding: '20px 24px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1000, margin: '0 auto', width: '100%' }}>
-      <TodaySection
-        day={todayData}
-        streakCounts={streakCounts}
-        onChecklistDelete={handleChecklistDelete}
-        onStreakToggle={handleStreakToggle}
-        onChecklistReorder={handleChecklistReorder}
-      />
       {initialTrackers.length > 0 && (
         <StreaksSection initialTrackers={initialTrackers} />
       )}
@@ -883,6 +1194,8 @@ export function DailyScreen({
         weekOffset={offset}
         streakCounts={streakCounts}
         onNavigate={handleNavigate}
+        onChecklistDelete={handleChecklistDelete}
+        onStreakToggle={handleStreakToggle}
       />
     </div>
   );

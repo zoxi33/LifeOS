@@ -167,6 +167,16 @@ export async function createHabit(data: {
   };
 }
 
+export async function updateHabit(id: string, data: {
+  name: string; emoji?: string; freq: string; type: string; target: number; unit?: string;
+}): Promise<void> {
+  const sb = await createClient();
+  await sb.from('habits').update(data as any).eq('id', id);
+  revalidatePath('/today');
+  revalidatePath('/habits');
+  revalidatePath('/daily');
+}
+
 export async function deleteHabit(id: string) {
   const sb = await createClient();
   await sb.from('habits').update({ active: false }).eq('id', id);
