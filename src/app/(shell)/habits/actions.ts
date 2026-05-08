@@ -68,20 +68,25 @@ export async function getHabitsRange(days: number | null): Promise<HabitFull[]> 
 
   const ids = habits.map(h => h.id);
 
-  let logsQuery = sb
+  type HabitLog = { habit_id: string; date: string; done: boolean; value_numeric: number | null };
+
+  let baseQuery = sb
     .from('habit_logs')
     .select('habit_id, date, done, value_numeric')
     .in('habit_id', ids);
-  if (since) logsQuery = logsQuery.gte('date', since) as typeof logsQuery;
+  if (since) baseQuery = baseQuery.gte('date', since) as typeof baseQuery;
 
-  const [{ data: allLogs }, { data: weekLogs }] = await Promise.all([
-    logsQuery,
+  const [allResult, weekResult] = await Promise.all([
+    baseQuery,
     sb.from('habit_logs').select('habit_id, date, done, value_numeric').in('habit_id', ids).gte('date', ws).lte('date', t),
   ]);
 
+  const allLogs = (allResult.data ?? []) as unknown as HabitLog[];
+  const weekLogs = (weekResult.data ?? []) as unknown as HabitLog[];
+
   return habits.map(h => {
-    const all = (allLogs ?? []).filter(l => l.habit_id === h.id);
-    const wk  = (weekLogs ?? []).filter(l => l.habit_id === h.id);
+    const all = allLogs.filter(l => l.habit_id === h.id);
+    const wk  = weekLogs.filter(l => l.habit_id === h.id);
     const done = all.filter(l => l.done).length;
     const createdAt = h.created_at ? new Date(h.created_at) : new Date();
     const daysSinceCreated = Math.max(1, Math.round((Date.now() - createdAt.getTime()) / 86400000));
@@ -105,8 +110,8 @@ export async function getHabitsRange(days: number | null): Promise<HabitFull[]> 
       week: weekDone,
       todayDone,
       unit: (h as Record<string, unknown>).unit as string ?? '',
-      todayValue: (todayLog as Record<string, unknown>)?.value_numeric as number | null ?? null,
-      logs: all.map(l => ({ date: l.date, done: l.done, value: (l as Record<string, unknown>).value_numeric as number | null })),
+      todayValue: todayLog?.value_numeric ?? null,
+      logs: all.map(l => ({ date: l.date, done: l.done, value: l.value_numeric })),
     };
   });
 }
@@ -124,8 +129,9 @@ export async function logHabitValue(habitId: string, date: string, value: number
   const sb = await createClient();
   const { error } = await sb
     .from('habit_logs')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .upsert(
-      { habit_id: habitId, date, done: true, value_numeric: value },
+      { habit_id: habitId, date, done: true, value_numeric: value } as any,
       { onConflict: 'habit_id,date' }
     );
   if (error) throw new Error(error.message);
