@@ -374,7 +374,7 @@ function HabitListRow({ h, isOpen, range, onToggle, onDelete, onTodayToggle, onV
           border: '1px solid ' + (h.todayDone ? 'var(--lo-accent-line)' : 'var(--lo-border-strong)'),
           background: h.todayDone ? 'var(--lo-accent-soft)' : 'var(--lo-surface-2)',
           color: h.todayDone ? 'var(--lo-accent)' : 'var(--lo-text-dim)',
-          display: hover || h.todayDone ? 'grid' : 'none',
+          display: h.todayDone ? 'grid' : 'none',
           placeItems: 'center', cursor: 'pointer',
           transition: 'all 0.1s',
         }}
