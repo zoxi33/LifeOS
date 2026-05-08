@@ -6,6 +6,33 @@ import { Sparkline } from '@/components/primitives/sparkline';
 import { SectionHeader } from '@/components/primitives/section-header';
 import type { StatsData } from '@/app/(shell)/stats/actions';
 
+// ─── value helpers ───────────────────────────────────────────────────────────
+
+function isTimeUnit(unit: string): boolean {
+  return /^(min|minut[ay]?|godzin[ay]?|h|hr)$/i.test(unit.trim());
+}
+
+function fmtTotalValue(total: number, unit: string): string {
+  if (isTimeUnit(unit)) {
+    const h = Math.floor(total / 60), m = total % 60;
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  }
+  return `${total % 1 === 0 ? total : total.toFixed(1)} ${unit}`;
+}
+
+function fmtAvgValue(avg: number, unit: string): string {
+  if (isTimeUnit(unit)) {
+    const rounded = Math.round(avg);
+    const h = Math.floor(rounded / 60), m = rounded % 60;
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  }
+  return `${avg % 1 === 0 ? avg : avg.toFixed(1)} ${unit}`;
+}
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 type Period = '7d' | '30d' | '90d' | 'rok';
@@ -237,6 +264,74 @@ export function StatsScreen({ data }: { data: StatsData }) {
           </div>
         )}
       </div>
+
+      {/* ── Wartości nawyków ── */}
+      {data.habitValueStats.length > 0 && (() => {
+        const statsInPeriod = data.habitValueStats.map(h => ({
+          ...h,
+          logs: h.logs.filter(l => l.date >= since),
+        })).filter(h => h.logs.length > 0);
+
+        if (statsInPeriod.length === 0) return null;
+
+        return (
+          <div style={{
+            background: 'var(--lo-surface)', border: '1px solid var(--lo-border)',
+            borderRadius: 12, padding: '18px 20px',
+          }}>
+            <SectionHeader eyebrow={`Wartości nawyków · ${days}d`} title="Sumy i średnie" />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 4 }}>
+              {statsInPeriod.map(h => {
+                const total = h.logs.reduce((s, l) => s + l.value, 0);
+                const avg = total / h.logs.length;
+                const max = Math.max(...h.logs.map(l => l.value));
+                const maxVal = max;
+                const isTime = isTimeUnit(h.unit);
+
+                return (
+                  <div key={h.id}>
+                    {/* Row header */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--lo-text)' }}>{h.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--lo-text-faint)', fontFamily: 'var(--font-geist-mono)' }}>{h.unit}</div>
+                      <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 12 }}>
+                        <span style={{ color: 'var(--lo-text-muted)' }}>
+                          łącznie <span style={{ color: 'var(--lo-accent)', fontWeight: 600 }}>{fmtTotalValue(total, h.unit)}</span>
+                        </span>
+                        <span style={{ color: 'var(--lo-text-muted)' }}>
+                          śr. <span style={{ color: 'var(--lo-text)' }}>{fmtAvgValue(avg, h.unit)}</span> / sesję
+                        </span>
+                        <span style={{ color: 'var(--lo-text-muted)' }}>
+                          max <span style={{ color: 'var(--lo-text)' }}>{fmtAvgValue(maxVal, h.unit)}</span>
+                        </span>
+                        <span style={{ color: 'var(--lo-text-dim)' }}>{h.logs.length}×</span>
+                      </div>
+                    </div>
+
+                    {/* Mini bar chart */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 48 }}>
+                      {h.logs.slice(-Math.min(h.logs.length, days)).map((l, i) => (
+                        <div
+                          key={i}
+                          title={`${l.date}: ${isTime ? fmtTotalValue(l.value, h.unit) : l.value + ' ' + h.unit}`}
+                          style={{
+                            flex: 1, minWidth: 3,
+                            height: Math.max(3, (l.value / maxVal) * 44),
+                            background: 'var(--lo-accent-soft)',
+                            border: '1px solid var(--lo-accent-line)',
+                            borderRadius: '2px 2px 0 0',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Scatter + Weight ── */}
       <div className="lo-grid-2col">
