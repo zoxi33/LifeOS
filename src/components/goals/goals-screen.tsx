@@ -325,11 +325,16 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
     setSel(remaining[0]?.id ?? '');
   };
 
+  const handleAdded = (goal: Goal) => {
+    setGoals(prev => [...prev, goal]);
+    setSel(goal.id);
+  };
+
   const g = goals.find(x => x.id === sel) ?? goals[0];
 
   if (!g) return (
     <>
-      <AddGoalDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddGoalDialog open={addOpen} onOpenChange={setAddOpen} onAdded={handleAdded} />
       <div className="lo-screen" style={{ padding: '20px 24px 40px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="label-eyebrow">Cele</div>
@@ -348,7 +353,7 @@ export function GoalsScreen({ initialGoals = [] }: { initialGoals?: Goal[] }) {
 
   return (
     <>
-      <AddGoalDialog open={addOpen} onOpenChange={setAddOpen} />
+      <AddGoalDialog open={addOpen} onOpenChange={setAddOpen} onAdded={handleAdded} />
       <div className="lo-grid-sidebar lo-screen" style={{
         padding: '20px 24px 40px',
         maxWidth: 1280, margin: '0 auto', width: '100%',

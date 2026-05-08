@@ -40,11 +40,27 @@ export async function getGoals(): Promise<Goal[]> {
 export async function createGoal(data: {
   name: string; category: string; current: number;
   target: number; unit: string; due_date: string; note: string;
-}) {
+}): Promise<Goal> {
   const sb = await createClient();
-  const { error } = await sb.from('goals').insert(data);
-  if (error) throw new Error(error.message);
+  const payload = { ...data, due_date: data.due_date || null };
+  const { data: row, error } = await sb.from('goals').insert(payload).select('*, goal_milestones(*)').single();
+  if (error || !row) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/goals');
+  const current = row.current ?? 0;
+  const target = row.target ?? 1;
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category ?? '',
+    pct: Math.min(100, Math.round((current / target) * 100)),
+    current,
+    target,
+    unit: row.unit ?? '',
+    due: row.due_date ?? '',
+    startDate: row.start_date ?? '',
+    note: row.note ?? '',
+    milestones: [],
+  };
 }
 
 export async function updateGoalProgress(id: string, current: number) {

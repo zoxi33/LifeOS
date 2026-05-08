@@ -8,9 +8,10 @@ import { createGoal } from '@/app/(shell)/goals/actions';
 
 const CATEGORIES = ['Zdrowie', 'Finanse', 'Nauka', 'Sport', 'Relacje', 'Inne'];
 
-export function AddGoalDialog({ open, onOpenChange }: {
+export function AddGoalDialog({ open, onOpenChange, onAdded }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onAdded?: (goal: Awaited<ReturnType<typeof createGoal>>) => void;
 }) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Inne');
@@ -26,7 +27,8 @@ export function AddGoalDialog({ open, onOpenChange }: {
     const tgt = parseFloat(target.replace(',', '.'));
     if (!name.trim() || isNaN(tgt)) return;
     start(async () => {
-      await createGoal({ name: name.trim(), category, current: cur, target: tgt, unit, due_date: dueDate, note });
+      const goal = await createGoal({ name: name.trim(), category, current: cur, target: tgt, unit, due_date: dueDate, note });
+      onAdded?.(goal);
       setName(''); setCategory('Inne'); setCurrent('0'); setTarget('');
       setUnit(''); setDueDate(''); setNote('');
       onOpenChange(false);
