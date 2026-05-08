@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { Icon } from '@/components/primitives/icon';
 import { resetStreak, deleteStreakTracker } from '@/app/(shell)/streaks/actions';
 import type { StreakTracker } from '@/app/(shell)/streaks/actions';
@@ -20,25 +20,39 @@ function milestoneLabel(days: number): string | null {
   return labels[days] ?? null;
 }
 
-export function StreakTrackerCard({ tracker }: { tracker: StreakTracker }) {
+export function StreakTrackerCard({ tracker, onDeleted }: {
+  tracker: StreakTracker;
+  onDeleted: (id: string) => void;
+}) {
   const [days, setDays] = useState(tracker.days);
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [resetting, startReset] = useTransition();
-  const [deleting, startDelete] = useTransition();
+  const [resetting, setResetting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const next = nextMilestone(days);
   const daysToNext = next ? next - days : null;
-
-  // milestone achieved on this exact day?
   const achieved = MILESTONES.includes(days) ? milestoneLabel(days) : null;
 
-  const handleReset = () => {
-    startReset(async () => {
+  const handleReset = async () => {
+    setResetting(true);
+    try {
       await resetStreak(tracker.id);
       setDays(0);
       setConfirmReset(false);
-    });
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteStreakTracker(tracker.id);
+      onDeleted(tracker.id);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -79,7 +93,7 @@ export function StreakTrackerCard({ tracker }: { tracker: StreakTracker }) {
           <span style={{ fontSize: 11, color: 'var(--lo-text-muted)', fontFamily: 'var(--font-geist-mono)' }}>Usuń?</span>
           <button
             disabled={deleting}
-            onClick={() => startDelete(async () => { await deleteStreakTracker(tracker.id); })}
+            onClick={handleDelete}
             style={{
               height: 22, padding: '0 8px',
               background: 'color-mix(in oklch, var(--lo-danger) 15%, transparent)',

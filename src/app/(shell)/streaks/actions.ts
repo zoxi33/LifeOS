@@ -41,18 +41,20 @@ export async function resetStreak(id: string) {
   revalidatePath('/streaks');
 }
 
-export async function addStreakTracker(name: string): Promise<StreakTracker> {
+export async function addStreakTracker(name: string, baseDays = 0): Promise<StreakTracker> {
   const sb = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  d.setDate(d.getDate() - baseDays);
+  const startedAt = d.toISOString().slice(0, 10);
   const { data, error } = await sb
     .from('streak_trackers')
-    .insert({ name, started_at: today })
+    .insert({ name, started_at: startedAt })
     .select()
     .single();
   if (error || !data) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/today');
   revalidatePath('/streaks');
-  return { id: data.id, name: data.name, startedAt: today, days: 0 };
+  return { id: data.id, name: data.name, startedAt, days: baseDays };
 }
 
 export async function deleteStreakTracker(id: string) {

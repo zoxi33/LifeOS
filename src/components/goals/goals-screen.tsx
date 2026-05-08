@@ -15,6 +15,7 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
   onDeactivated: (id: string) => void;
 }) {
   const [inputVal, setInputVal] = useState(String(g.current));
+  const [localDays, setLocalDays] = useState(g.current);
   const [saving, setSaving] = useState(false);
   const [, startSave] = useTransition();
   const [resetting, setResetting] = useState(false);
@@ -67,7 +68,7 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
   const isAbstinence = g.goalType === 'abstinence';
   const done = isText && g.current >= 1;
   const pct = isText ? (done ? 100 : 0)
-    : isAbstinence ? (g.target > 0 ? Math.min(100, Math.round((g.current / g.target) * 100)) : 0)
+    : isAbstinence ? (g.target > 0 ? Math.min(100, Math.round((localDays / g.target) * 100)) : 0)
     : Math.min(100, Math.round((parseFloat(inputVal) / (g.target || 1)) * 100));
 
   return (
@@ -100,7 +101,7 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
               <Icon name={done ? 'check' : 'clock'} size={22} style={{ color: done ? 'var(--lo-accent)' : 'var(--lo-text-faint)' }} />
             ) : isAbstinence ? (
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{g.current}</div>
+                <div style={{ fontFamily: 'var(--font-geist-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{localDays}</div>
                 <div style={{ fontSize: 9, color: 'var(--lo-text-faint)', marginTop: 2 }}>dni</div>
               </div>
             ) : (
@@ -129,7 +130,7 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
               <div style={{ padding: '12px 14px', background: 'var(--lo-surface-2)', borderRadius: 8, border: '1px solid var(--lo-border)' }}>
                 <div className="label-eyebrow" style={{ marginBottom: 6 }}>Streak</div>
                 <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 22, fontWeight: 600, color: 'var(--lo-accent)' }}>
-                  {g.current}<span style={{ fontSize: 11, color: 'var(--lo-text-faint)', marginLeft: 3 }}>dni</span>
+                  {localDays}<span style={{ fontSize: 11, color: 'var(--lo-text-faint)', marginLeft: 3 }}>dni</span>
                 </div>
               </div>
               <div style={{ padding: '12px 14px', background: 'var(--lo-surface-2)', borderRadius: 8, border: '1px solid var(--lo-border)' }}>
@@ -175,6 +176,7 @@ function GoalDetail({ g, onProgressSaved, onReset, onDeactivated }: {
                       setResetError(null);
                       try {
                         await resetAbstinence(g.id);
+                        setLocalDays(0);
                         onReset(g.id);
                         setConfirmReset(false);
                       } catch (e) {
