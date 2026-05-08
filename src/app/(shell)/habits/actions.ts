@@ -143,7 +143,8 @@ export async function createHabit(data: {
   name: string; emoji?: string; freq: string; type: string; target: number; unit?: string;
 }): Promise<HabitFull> {
   const sb = await createClient();
-  const { data: row, error } = await sb.from('habits').insert(data).select().single();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: row, error } = await sb.from('habits').insert(data as any).select().single();
   if (error || !row) throw new Error(error?.message ?? 'insert failed');
   revalidatePath('/today');
   revalidatePath('/habits');
